@@ -8,8 +8,34 @@ use Symfony\Component\Process\Exception\ProcessFailedException;
 
 class StressController extends Controller
 {
+    public function login(Request $request)
+    {
+        $password = $request->input('password');
+        // Set your master password here
+        $master_password = 'Alyfa021199'; 
+
+        if ($password === $master_password) {
+            session(['authenticated' => true]);
+            return response()->json(['success' => true]);
+        }
+
+        return response()->json(['success' => false, 'message' => 'Invalid Access Key']);
+    }
+
+    public function logout(Request $request)
+    {
+        session()->forget('authenticated');
+        return redirect()->route('stress.index');
+    }
+
     public function index()
     {
+        $authenticated = session('authenticated', false);
+        
+        if (!$authenticated) {
+            return view('stress', ['authenticated' => false, 'specs' => []]);
+        }
+
         // Default values
         $cpu = "Unknown Processor";
         $cores = "1";
@@ -40,11 +66,13 @@ class StressController extends Controller
             'disk_free' => $this->formatBytes($diskFree),
         ];
 
-        return view('stress', compact('specs'));
+        return view('stress', compact('specs', 'authenticated'));
     }
 
     public function stats()
     {
+        if (!session('authenticated')) return response()->json(['error' => 'Unauthorized'], 403);
+
         $cpuLoad = rand(5, 10);
         $ramUsage = rand(10, 20);
 
@@ -83,6 +111,12 @@ class StressController extends Controller
 
     public function start(Request $request)
     {
+        if (!session('authenticated')) {
+            return response()->stream(function() {
+                echo "<h3>[403] ACCESS DENIED: Invalid Security Token.</h3>";
+            }, 403, ['Content-Type' => 'text/html']);
+        }
+
         @session_write_close(); 
         set_time_limit(0);
 
