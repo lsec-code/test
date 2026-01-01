@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monster Stres | Load Tester</title>
+    <title>LinuxSec | Gold Edition</title>
+    <link rel="icon" type="image/x-icon" href="https://cdn-icons-png.flaticon.com/512/1000/1000997.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -69,9 +70,9 @@
             <div class="flex justify-between items-center mb-8 border-b border-slate-800 pb-6">
                 <div>
                     <h1 class="text-4xl font-black text-white tracking-tighter flex items-center gap-3">
-                        <i class="fa-solid fa-ghost text-sky-500"></i> MONSTER STRES <span class="text-xs bg-sky-500/10 text-sky-500 px-2 py-0.5 rounded border border-sky-500/20">V7.0 PLATINUM</span>
+                        <i class="fa-solid fa-ghost text-sky-500"></i> LinuxSec <span class="text-xs bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded border border-amber-500/20 shadow-[0_0_10px_rgba(245,158,11,0.2)]">V7.0 GOLD EDITION</span>
                     </h1>
-                    <p class="text-[10px] text-slate-500 uppercase tracking-[0.3em] font-bold mt-1">Multi-Core L7 WRK-Performance Stress Tester</p>
+                    <p class="text-[10px] text-slate-500 uppercase tracking-[0.3em] font-bold mt-1">Advanced L7 Dynamic Stress Engine — Private Access</p>
                 </div>
                 <div id="strike-indicator" class="hidden animate-pulse flex items-center gap-2 bg-red-500/10 border border-red-500/20 px-4 py-2 rounded-full">
                     <span class="relative flex h-2 w-2">
