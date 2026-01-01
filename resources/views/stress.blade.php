@@ -69,7 +69,29 @@
                 <h1 class="text-3xl font-bold text-white tracking-tight">MONSTER STRES</h1>
                 <p class="text-sm text-slate-400 mt-1">High Performance Load Testing Tool</p>
             </div>
-            <div class="flex items-center gap-2">
+
+            <!-- SERVER SPECS CARD -->
+            <div class="bg-slate-900 border border-slate-700 rounded-lg p-3 flex gap-6 shadow-xl">
+                 <div class="text-xs">
+                    <span class="block text-slate-500 uppercase tracking-wider font-bold">CPU Model</span>
+                    <span class="text-sky-400 font-mono">{{ $specs['cpu'] }}</span>
+                 </div>
+                 <div class="text-xs border-l border-slate-700 pl-4">
+                    <span class="block text-slate-500 uppercase tracking-wider font-bold">Cores</span>
+                    <span class="text-green-400 font-mono">{{ $specs['cores'] }} CORES</span>
+                 </div>
+                 <div class="text-xs border-l border-slate-700 pl-4">
+                    <span class="block text-slate-500 uppercase tracking-wider font-bold">RAM Usage</span>
+                    <span class="text-yellow-400 font-mono">{{ $specs['ram_total'] }} (Free: {{ $specs['ram_free'] }})</span>
+                 </div>
+                 <div class="text-xs border-l border-slate-700 pl-4">
+                    <span class="block text-slate-500 uppercase tracking-wider font-bold">SSD Storage</span>
+                    <span class="text-purple-400 font-mono">{{ $specs['disk_free'] }} Free / {{ $specs['disk_total'] }}</span>
+                 </div>
+            </div>
+            
+            <!-- Mobile Version Badge -->
+             <div class="flex items-center gap-2 md:hidden">
                 <span class="px-3 py-1 bg-slate-700 rounded-full text-xs font-semibold text-slate-300">V2.0</span>
                 <span class="px-3 py-1 bg-green-900 text-green-300 rounded-full text-xs font-semibold">Online</span>
             </div>

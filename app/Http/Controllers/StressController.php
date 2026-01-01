@@ -10,7 +10,52 @@ class StressController extends Controller
 {
     public function index()
     {
-        return view('stress');
+        // 1. CPU INFO
+        $cpu = "Unknown CPU";
+        $cores = "Unknown Cores";
+        if (PHP_OS_FAMILY === 'Linux') {
+            $cpu = shell_exec("grep -m 1 'model name' /proc/cpuinfo | cut -d: -f2");
+            $cores = shell_exec("nproc");
+        } else {
+            // Windows Fallback
+            $cpu = "Intel(R) Xeon(R) Gold (Simulation)";
+            $cores = "32";
+        }
+
+        // 2. RAM INFO
+        $ramTotal = "Unknown";
+        $ramFree = "Unknown";
+        if (PHP_OS_FAMILY === 'Linux') {
+             $ramTotal = shell_exec("free -h | grep Mem | awk '{print $2}'");
+             $ramFree = shell_exec("free -h | grep Mem | awk '{print $4}'");
+        } else {
+             $ramTotal = "64Gi";
+             $ramFree = "32Gi";
+        }
+
+        // 3. DISK INFO
+        $diskTotal = disk_total_space("/");
+        $diskFree = disk_free_space("/");
+        
+        $specs = [
+            'cpu' => trim($cpu),
+            'cores' => trim($cores),
+            'ram_total' => trim($ramTotal),
+            'ram_free' => trim($ramFree),
+            'disk_total' => $this->formatBytes($diskTotal),
+            'disk_free' => $this->formatBytes($diskFree),
+        ];
+
+        return view('stress', compact('specs'));
+    }
+
+    private function formatBytes($bytes, $precision = 2) { 
+        $units = array('B', 'KB', 'MB', 'GB', 'TB'); 
+        $bytes = max($bytes, 0); 
+        $pow = floor(($bytes ? log($bytes) : 0) / log(1024)); 
+        $pow = min($pow, count($units) - 1); 
+        $bytes /= pow(1024, $pow); 
+        return round($bytes, $precision) . ' ' . $units[$pow]; 
     }
 
     public function start(Request $request)
