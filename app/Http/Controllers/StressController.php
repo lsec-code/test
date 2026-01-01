@@ -8,11 +8,6 @@ use Symfony\Component\Process\Exception\ProcessFailedException;
 
 class StressController extends Controller
 {
-    public function landing()
-    {
-        return view('landing');
-    }
-
     public function index()
     {
         // Default values
@@ -89,11 +84,11 @@ class StressController extends Controller
     public function start(Request $request)
     {
         $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
-            'url' => 'required|string|min:4', // Allow IP or URL
+            'url' => 'required|string|min:10',
             'threads' => 'required|integer|min:1|max:1000',
             'duration' => 'required|integer|min:1', 
             'port' => 'required|integer|min:1|max:65535',
-            'mode' => 'required|string', // Changed to string for .udp, .tcp, etc.
+            'mode' => 'required|integer',
             'limit_type' => 'required|string|in:time,req',
             'rps' => 'required|integer|min:0'
         ]);
@@ -103,7 +98,7 @@ class StressController extends Controller
                 echo str_repeat(' ', 4096);
                 echo '<html><body style="background:#000; color:#ef4444; font-family:monospace; padding:20px;">';
                 echo "<h3>[VALIDATION ERROR]</h3>";
-                echo "<ul><li>Invalid Inputs. Check Target, Threads, RPS and Limit values.</li></ul>";
+                echo "<ul><li>Invalid Inputs. Check URL, Threads, RPS and Limit values.</li></ul>";
                 echo "</body></html>";
             }, 200, ['Content-Type' => 'text/html']);
         }
@@ -112,7 +107,7 @@ class StressController extends Controller
         $threads = (int)$request->input('threads');
         $limit_val = (int)$request->input('duration');
         $port = (int)$request->input('port');
-        $mode = $request->input('mode');
+        $mode = (int)$request->input('mode');
         $limit_type = $request->input('limit_type');
         $rps = (int)$request->input('rps');
 
@@ -125,14 +120,14 @@ class StressController extends Controller
             echo '<script>setInterval(() => { window.scrollTo(0, document.body.scrollHeight); }, 100);</script>';
             
             $rpsText = $rps > 0 ? "PACED ($rps RPS)" : "MAX-EFFICIENCY";
-            echo "<span style='color:#38bdf8'>[SYSTEM] MONSTER V8 - MODE: ".strtoupper($mode)." ($rpsText)</span><br>";
+            echo "<span style='color:#38bdf8'>[SYSTEM] MONSTER V8 - MODE: $mode ($rpsText)</span><br>";
             
             if (!file_exists($scriptPath)) {
                 echo "<span style='color:#ef4444'>[FATAL] Stress engine not found.</span>";
                 return;
             }
 
-            $cmd = "$python -u \"$scriptPath\" \"$url\" $threads $limit_val $port \"$mode\" $limit_type $rps 2>&1";
+            $cmd = "$python -u \"$scriptPath\" \"$url\" $threads $limit_val $port $mode $limit_type $rps 2>&1";
             
             $descriptorspec = [
                 0 => array("pipe", "r"),
@@ -147,7 +142,6 @@ class StressController extends Controller
                     $line = mb_convert_encoding($line, 'UTF-8', 'UTF-8');
                     echo htmlspecialchars($line) . "<br>";
                     flush();
-                    if (str_contains($line, 'Operation Finished')) break;
                 }
                 
                 if (isset($pipes[0])) fclose($pipes[0]); 
@@ -157,8 +151,8 @@ class StressController extends Controller
                     if(window.parent && window.parent.resetStrikeUI) {
                         window.parent.resetStrikeUI();
                         window.parent.Swal.fire({
-                            title: "Strike Completed",
-                            text: "Operational objectives met for '.strtoupper($mode).'.",
+                            title: "Attack Finished",
+                            text: "Operational objectives met. Systems idle.",
                             icon: "success",
                             timer: 3000,
                             background: "#0f172a",
@@ -170,38 +164,5 @@ class StressController extends Controller
                 proc_close($process);
             }
         }, 200, ['Content-Type' => 'text/html', 'X-Accel-Buffering' => 'no']);
-    }
-
-    public function sqliIndex() {
-        return view('sqli');
-    }
-
-    public function sqliStart(Request $request) {
-        $mode = $request->input('mode_name');
-        $target = $request->input('target');
-
-        return response()->stream(function() use ($mode, $target) {
-            echo str_repeat(' ', 4096);
-            echo '<html><body style="background:#000; color:#10b981; font-family:monospace; padding:15px;">';
-            echo "<span>[SQLi-AUTO] INITIALIZING ".strtoupper($mode)." ON $target...</span><br><br>";
-            
-            $steps = [
-                "[*] Scanning for injection entry points...",
-                "[*] Dumping database schema...",
-                "[*] Bypass WAF Layer 3/4 Detected... applying obfuscation...",
-                "[*] Fetching admin tables...",
-                "[!] SUCCESS: Records extracted.",
-                "[*] Cleaning up logs..."
-            ];
-
-            foreach($steps as $s) {
-                echo "<span>$s</span><br>";
-                flush();
-                usleep(500000);
-            }
-
-            echo "<br><span style='color:#fbbf24'>[DONE] Operational Goal Met.</span>";
-            echo '<script>if(window.parent && window.parent.Swal) window.parent.Swal.fire({title:"Operation Success", text:"'.$mode.' completed on '.$target.'", icon:"success", background:"#0f172a", color:"#fff"});</script>';
-        }, 200, ['Content-Type' => 'text/html']);
     }
 }
