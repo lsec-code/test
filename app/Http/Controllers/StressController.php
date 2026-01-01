@@ -7,39 +7,48 @@ use Symfony\Component\Process\Process;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 
 use Illuminate\Support\Facades\RateLimiter;
+use Exception;
 
 class StressController extends Controller
 {
     public function login(Request $request)
     {
-        $ip = $request->ip();
-        if (RateLimiter::tooManyAttempts('login-attempts:'.$ip, 5)) {
-            $seconds = RateLimiter::availableIn('login-attempts:'.$ip);
-            return response()->json(['success' => false, 'message' => "Too many attempts. Lockout: $seconds seconds."]);
+        try {
+            $ip = $request->ip();
+            if (RateLimiter::tooManyAttempts('login-attempts:'.$ip, 5)) {
+                $seconds = RateLimiter::availableIn('login-attempts:'.$ip);
+                return response()->json(['success' => false, 'message' => "Too many attempts. Lockout: $seconds seconds."]);
+            }
+
+            $password = $request->input('password');
+            $master_password = 'Alyfa021199'; 
+
+            if ($password === $master_password) {
+                RateLimiter::clear('login-attempts:'.$ip);
+                session()->put('authenticated', true);
+                session()->save(); 
+                return response()->json(['success' => true]);
+            }
+
+            RateLimiter::hit('login-attempts:'.$ip, 60);
+            return response()->json(['success' => false, 'message' => 'Invalid Access Key. Attempt ' . RateLimiter::attempts('login-attempts:'.$ip) . '/5']);
+        } catch (Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Server Configuration Error: ' . $e->getMessage()], 500);
         }
-
-        $password = $request->input('password');
-        $master_password = 'Alyfa021199'; 
-
-        if ($password === $master_password) {
-            RateLimiter::clear('login-attempts:'.$ip);
-            session()->put('authenticated', true);
-            session()->save(); // Force save to disk
-            return response()->json(['success' => true]);
-        }
-
-        RateLimiter::hit('login-attempts:'.$ip, 60);
-        return response()->json(['success' => false, 'message' => 'Invalid Access Key. Attempt ' . RateLimiter::attempts('login-attempts:'.$ip) . '/5']);
     }
 
     public function logout(Request $request)
     {
         session()->forget('authenticated');
-        return redirect()->route('stress.index');
+        return redirect()->to('/');
     }
 
     public function index()
     {
+        if (request()->secure() || env('FORCE_HTTPS', false)) {
+            \URL::forceScheme('https');
+        }
+        
         $authenticated = session('authenticated', false);
         
         if (!$authenticated) {
