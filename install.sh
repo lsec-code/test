@@ -3,6 +3,7 @@
 # MONSTER STRES INSTALLER (UBUNTU/DEBIAN)
 # Target: /var/www/test
 # Port: 9999
+# Repository: https://github.com/lsec-code/test.git
 # Created by: LinuxSec
 
 # Colors
@@ -32,7 +33,7 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 PROJECT_DIR="/var/www/test"
-DOMAIN="localhost" 
+REPO_URL="https://github.com/lsec-code/test.git"
 
 echo -e "${GREEN}[+] Updating System & Installing Dependencies...${NC}"
 apt update -y
@@ -53,19 +54,35 @@ fi
 # 2. Setup Project Directory
 echo -e "${GREEN}[+] Setting up Project at ${PROJECT_DIR}...${NC}"
 
-# If script is run inside the repo, move files to target
-# Otherwise, assume user already cloned to /var/www/test or we are just setting up env
-if [ "$PWD" != "$PROJECT_DIR" ]; then
-    echo -e "${CYAN}[i] Current directory is not destination. Checking source...${NC}"
-    # Logic: If we are not in /var/www/test, maybe we should be?
-    # For now, let's assume the user runs this script FROM the cloned folder.
-    # We will copy everything to /var/www/test if it doesn't exist there.
-    
-    mkdir -p /var/www/test
-    cp -r . /var/www/test/
+
+
+# Logic: Clone if not exists, Pull if exists
+if [ ! -d "$PROJECT_DIR/.git" ]; then
+    echo -e "${CYAN}[+] Clone Repository from ${REPO_URL}...${NC}"
+    rm -rf $PROJECT_DIR # Clear integrity
+    git clone $REPO_URL $PROJECT_DIR
+else
+    echo -e "${CYAN}[+] Repository exists. Pulling latest updates...${NC}"
+    cd $PROJECT_DIR
+    git pull origin main
+fi
+
+# SAFETY CHECK: Fix Nested Folder Issue (e.g. /var/www/test/laravel/composer.json)
+if [ ! -f "$PROJECT_DIR/composer.json" ]; then
+    echo -e "${YELLOW}[!] composer.json not found in root. Checking subdirectories...${NC}"
+    SUB_DIR=$(find $PROJECT_DIR -name "composer.json" -type f | head -n 1 | xargs dirname)
+    if [ ! -z "$SUB_DIR" ] && [ "$SUB_DIR" != "$PROJECT_DIR" ]; then
+        echo -e "${CYAN}[+] Found project in $SUB_DIR. Moving to root...${NC}"
+        mv $SUB_DIR/* $PROJECT_DIR/
+        mv $SUB_DIR/.* $PROJECT_DIR/ 2>/dev/null
+    else
+         echo -e "${RED}[!] FATAL: No composer.json found. Clone failed or Repo is empty.${NC}"
+         exit 1
+    fi
 fi
 
 cd $PROJECT_DIR
+export COMPOSER_ALLOW_SUPERUSER=1
 
 # 3. Laravel Setup
 echo -e "${GREEN}[+] Configuring Laravel...${NC}"
@@ -124,11 +141,10 @@ service nginx restart
 service php8.3-fpm restart
 
 # 5. Finalize
-IP=$(curl -s ifconfig.me)
 echo -e "${CYAN}"
 echo "=================================================="
 echo "   INSTALLATION COMPLETE!"
 echo "=================================================="
-echo -e "${GREEN}[+] URL: http://$IP:9999/test"
+echo -e "${GREEN}[+] URL: http://localhost:9999/test (via Tunnel)"
 echo -e "${GREEN}[+] Directory: $PROJECT_DIR"
 echo -e "${NC}"
