@@ -49,6 +49,8 @@ class StressController extends Controller
             flush();
 
             $cmd = "$python \"$scriptPath\" \"$url\" $threads $duration $port $mode";
+            // 2>&1 redirects Stderr to Stdout so we can see errors
+            $cmd = "$cmd 2>&1"; 
             
             $descriptorSpec = [
                 0 => ["pipe", "r"],
