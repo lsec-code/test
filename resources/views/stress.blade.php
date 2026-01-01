@@ -67,9 +67,9 @@
             <div class="flex justify-between items-center mb-8 border-b border-slate-800 pb-6">
                 <div>
                     <h1 class="text-4xl font-black text-white tracking-tighter flex items-center gap-3">
-                        <i class="fa-solid fa-ghost text-sky-500"></i> MONSTER STRES <span class="text-xs bg-sky-500/10 text-sky-500 px-2 py-0.5 rounded border border-sky-500/20">V6.2 GOLD</span>
+                        <i class="fa-solid fa-ghost text-sky-500"></i> MONSTER STRES <span class="text-xs bg-sky-500/10 text-sky-500 px-2 py-0.5 rounded border border-sky-500/20">V7.0 PLATINUM</span>
                     </h1>
-                    <p class="text-[10px] text-slate-500 uppercase tracking-[0.3em] font-bold mt-1">Multi-Core L7 Application Layer Stress Tester</p>
+                    <p class="text-[10px] text-slate-500 uppercase tracking-[0.3em] font-bold mt-1">Multi-Core L7 WRK-Performance Stress Tester</p>
                 </div>
                 <div id="strike-indicator" class="hidden animate-pulse flex items-center gap-2 bg-red-500/10 border border-red-500/20 px-4 py-2 rounded-full">
                     <span class="relative flex h-2 w-2">
@@ -154,7 +154,7 @@
                             <option value="1">L7-STD: Application Layer Flood (Standard)</option>
                             <option value="2">L7-ADV: Human Identity Emulation (Bypass)</option>
                             <option value="3">L7-DBX: Database & Search Exhaustion (Cache Bypass)</option>
-                            <option value="4">L7-KLR: Killer V6 Buffer Overflow (High Load)</option>
+                            <option value="4">L7-KLR: Killer V7 WRK-Mode (Max Efficacy)</option>
                             <option value="5">L7-SLO: Connection Slots Exhaustion (Slowloris)</option>
                         </select>
                     </div>
