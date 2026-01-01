@@ -147,9 +147,33 @@
                         <input type="number" name="threads" required class="w-full bg-slate-900 border-slate-800 text-white rounded-xl p-3.5 text-sm font-mono" value="32">
                     </div>
                     <div class="lg:col-span-2">
-                        <label class="block text-[10px] font-bold uppercase text-slate-500 mb-2 tracking-widest">Sec</label>
-                        <input type="number" name="duration" required class="w-full bg-slate-900 border-slate-800 text-white rounded-xl p-3.5 text-sm font-mono" value="60">
+                        <label class="block text-[10px] font-bold uppercase text-slate-500 mb-2 tracking-widest">Stop Condition</label>
+                        <select name="limit_type" id="limit_type" class="w-full bg-slate-900 border-slate-800 text-white rounded-xl p-3.5 text-xs font-mono focus:ring-2 focus:ring-sky-500" onchange="updateLimitLabel()">
+                            <option value="time">Flood (Sec)</option>
+                            <option value="req">Visitors (Req)</option>
+                        </select>
                     </div>
+                    <div class="lg:col-span-2">
+                        <label id="limit-label" class="block text-[10px] font-bold uppercase text-slate-500 mb-2 tracking-widest">Duration (Sec)</label>
+                        <input type="number" name="duration" id="duration" required class="w-full bg-slate-900 border-slate-800 text-white rounded-xl p-3.5 text-sm font-mono" value="60">
+                    </div>
+
+                    <script>
+                        function updateLimitLabel() {
+                            const type = document.getElementById('limit_type').value;
+                            const label = document.getElementById('limit-label');
+                            const input = document.getElementById('duration');
+                            if(type === 'time') {
+                                label.innerText = "Duration (Sec)";
+                                input.placeholder = "Example: 60";
+                                if(input.value > 3600) input.value = 60;
+                            } else {
+                                label.innerText = "Target (Req)";
+                                input.placeholder = "Example: 10000";
+                                if(input.value < 1000) input.value = 10000;
+                            }
+                        }
+                    </script>
                     <div class="lg:col-span-8">
                         <label class="block text-[10px] font-bold uppercase text-slate-500 mb-2 tracking-widest">Attack Protocol Selection</label>
                         <select name="mode" id="mode" class="w-full bg-slate-900 border-slate-800 text-white rounded-xl p-3.5 text-sm font-black tracking-tight focus:ring-2 focus:ring-sky-500 transition-all font-mono">
