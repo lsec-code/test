@@ -93,6 +93,9 @@ class StressController extends Controller
             // Initial padding
             echo str_repeat(' ', 4096);
             
+            // HTML STYLING WRAPPER
+            echo '<html><body style="background-color:#0f172a; color:#4ade80; font-family:monospace; font-size:12px; margin:0; padding:10px;">';
+            
             // STREAM INIT MESSAGE
             echo "<span style='color:cyan'>[SYSTEM] Initializing Engine...</span><br>";
             echo "<span style='color:cyan'>[SYSTEM] Using Python: $python</span><br>";
