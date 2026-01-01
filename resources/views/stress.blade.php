@@ -3,147 +3,190 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MONSTER STRES | 32-CORE LOAD TESTER</title>
+    <title>Monster Stres | Load Tester</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
         body {
-            background-color: #000;
-            color: #0f0;
-            font-family: 'Share Tech Mono', monospace;
-            overflow-x: hidden;
+            background-color: #0f172a; /* Slate 900 */
+            color: #cbd5e1; /* Slate 300 */
+            font-family: 'Inter', sans-serif;
         }
-        .matrix-bg {
-            background: linear-gradient(rgba(0, 20, 0, 0.9), rgba(0, 0, 0, 0.9)),
-                        url('https://media.giphy.com/media/U3qYN8S0j3bpK/giphy.gif');
-            background-size: cover;
+        .card {
+            background-color: #1e293b; /* Slate 800 */
+            border: 1px solid #334155; /* Slate 700 */
+            padding: 2rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
-        .neon-border {
-            box-shadow: 0 0 10px #0f0, inset 0 0 10px #0f0;
-            border: 2px solid #0f0;
+        input, select {
+            background-color: #0f172a;
+            border: 1px solid #334155;
+            color: #fff;
+            border-radius: 0.375rem;
         }
-        .neon-text {
-            text-shadow: 0 0 10px #0f0;
-        }
-        input, button {
-            background: #000;
-            border: 1px solid #0f0;
-            color: #0f0;
-            font-family: 'Share Tech Mono', monospace;
-        }
-        input:focus {
+        input:focus, select:focus {
             outline: none;
-            box-shadow: 0 0 15px #0f0;
+            border-color: #3b82f6; /* Blue 500 */
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
         }
-        button:hover {
-            background: #0f0;
-            color: #000;
-            box-shadow: 0 0 20px #0f0;
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+            transition: all 0.2s;
         }
-        #terminal {
-            height: 300px;
-            overflow-y: auto;
-            border-top: 2px solid #0f0;
-            font-size: 0.9rem;
-            padding: 10px;
-            background: rgba(0, 10, 0, 0.9);
+        .btn-primary:hover {
+            background-color: #2563eb;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
         }
-        /* Scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #000; }
-        ::-webkit-scrollbar-thumb { background: #0f0; }
+        .btn-danger {
+            background-color: #ef4444;
+            color: white;
+            transition: all 0.2s;
+        }
+        .btn-danger:hover {
+            background-color: #dc2626;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+        }
+        /* Terminal Style */
+        #terminal-frame {
+            background-color: #000;
+            color: #4ade80; /* Green 400 */
+            font-family: 'Courier New', monospace;
+            border: 1px solid #334155;
+            border-radius: 0.5rem;
+        }
     </style>
 </head>
-<body class="matrix-bg min-h-screen flex items-center justify-center p-4">
+<body class="min-h-screen flex items-center justify-center p-4">
 
-    <div class="w-full max-w-4xl neon-border bg-black p-8 relative">
-        <div class="absolute top-0 left-0 bg-green-900 text-black px-2 py-1 text-xs font-bold">SYSTEM_READY</div>
-        
-        <div class="text-center mb-10">
-            <h1 class="text-6xl font-black neon-text mb-2">MONSTER STRES</h1>
-            <p class="text-xl tracking-widest">32-CORE HIGH PERFORMANCE LOAD TESTER</p>
-            <p class="text-xs text-green-700 mt-2">POWERED BY LINUXSEC & LARAVEL</p>
+    <div class="w-full max-w-5xl card relative">
+        <div class="flex items-center justify-between mb-8 border-b border-slate-700 pb-4">
+            <div>
+                <h1 class="text-3xl font-bold text-white tracking-tight">MONSTER STRES</h1>
+                <p class="text-sm text-slate-400 mt-1">High Performance Load Testing Tool</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="px-3 py-1 bg-slate-700 rounded-full text-xs font-semibold text-slate-300">V2.0</span>
+                <span class="px-3 py-1 bg-green-900 text-green-300 rounded-full text-xs font-semibold">Online</span>
+            </div>
         </div>
 
         <form action="{{ route('stress.start') }}" method="POST" target="terminal-frame" onsubmit="startAttack()" class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             @csrf
             
             <div class="col-span-3">
-                <label class="block text-sm mb-2">> TARGET_URL (or IP)</label>
-                <input type="text" name="url" required class="w-full p-3 text-lg" placeholder="https://target.com" value="https://">
+                <label class="block text-xs font-semibold uppercase text-slate-400 mb-2">Target URL / IP</label>
+                <input type="text" name="url" required class="w-full p-3" placeholder="https://example.com" value="https://">
             </div>
 
              <div>
-                <label class="block text-sm mb-2">> PORT</label>
-                <input type="number" name="port" required class="w-full p-3 text-lg" value="443" min="1" max="65535">
+                <label class="block text-xs font-semibold uppercase text-slate-400 mb-2">Port</label>
+                <input type="number" name="port" required class="w-full p-3" value="443" min="1" max="65535">
             </div>
 
             <div>
-                 <label class="block text-sm mb-2">> THREADS (Max 32)</label>
-                <input type="number" name="threads" required class="w-full p-3 text-lg" value="32" min="1" max="1000">
+                 <label class="block text-xs font-semibold uppercase text-slate-400 mb-2">Threads</label>
+                <input type="number" name="threads" required class="w-full p-3" value="32" min="1" max="1000">
             </div>
 
             <div>
-                 <label class="block text-sm mb-2">> DURATION (Secs)</label>
-                <input type="number" name="duration" required class="w-full p-3 text-lg" value="60" min="5" max="300">
+                 <label class="block text-xs font-semibold uppercase text-slate-400 mb-2">Duration (s)</label>
+                <input type="number" name="duration" required class="w-full p-3" value="60" min="5" max="300">
             </div>
 
             <div class="col-span-2">
-                 <label class="block text-sm mb-2">> ATTACK MODE</label>
-                 <select name="mode" class="w-full p-3 text-lg bg-black border border-green-500 text-green-500">
-                     <option value="1">[1] STANDARD STORM</option>
-                     <option value="2">[2] BYPASS CLOUDFLARE (Evasion)</option>
-                     <option value="3">[3] BYPASS CACHE (Random Params)</option>
-                     <option value="4">[4] TOTAL ANNIHILATION (Mixed)</option>
+                 <label class="block text-xs font-semibold uppercase text-slate-400 mb-2">Attack Mode</label>
+                 <select name="mode" class="w-full p-3">
+                     <option value="1">Standard Storm (Linear Request)</option>
+                     <option value="2">Bypass Cloudflare (Headers Rotation)</option>
+                     <option value="3">Bypass Cache (Random Parameters)</option>
+                     <option value="4">Total Annihilation (Mixed)</option>
                  </select>
             </div>
 
-            <div class="col-span-4 flex items-end gap-4">
-                <button type="submit" id="btn-launch" class="flex-1 p-3 text-xl font-bold uppercase tracking-widest ">
-                    <i class="fa-solid fa-skull mr-2"></i> LAUNCH WARHEADS
+            <div class="col-span-4 flex items-end gap-4 mt-4">
+                <button type="submit" id="btn-launch" class="flex-1 p-3.5 text-lg font-bold rounded-lg btn-primary shadow-lg flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-rocket"></i> <span id="btn-text">LAUNCH TEST</span>
                 </button>
-                <button type="button" onclick="stopAttack()" class="w-1/4 p-3 text-xl font-bold uppercase tracking-widest bg-red-900 border border-red-500 text-red-500 hover:bg-red-800">
-                    <i class="fa-solid fa-stop mr-2"></i> ABORT
+                <button type="button" onclick="confirmStop()" class="w-1/4 p-3.5 text-lg font-bold rounded-lg btn-danger shadow-lg flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-stop"></i> ABORT
                 </button>
             </div>
         </form>
 
         <div class="mb-2 flex justify-between items-end">
-            <label class="text-sm">> LIVE_TERMINAL_OUTPUT</label>
-            <span class="text-xs animate-pulse">● CONNECTED</span>
+            <label class="text-xs font-semibold uppercase text-slate-400">Terminal Output</label>
         </div>
         
-        <iframe name="terminal-frame" id="terminal-frame" class="w-full h-80 bg-black border border-green-500 neon-border opacity-90 p-2"></iframe>
+        <iframe name="terminal-frame" id="terminal-frame" class="w-full h-80 p-4 shadow-inner"></iframe>
         
         <script>
             function startAttack() {
-                const terminal = document.getElementById('terminal-frame');
-                // terminal.src = 'about:blank'; // Don't blank immediately to show loading
-                document.getElementById('btn-launch').innerText = "DEPLOYING...";
-                document.getElementById('btn-launch').disabled = true;
+                const btn = document.getElementById('btn-launch');
+                const btnText = document.getElementById('btn-text');
                 
-                // Visual FX
-                document.body.style.animation = "shake 0.5s";
-                setTimeout(() => { document.body.style.animation = ""; }, 500);
+                btnText.innerText = "DEPLOYING...";
+                btn.style.opacity = "0.7";
+                btn.style.cursor = "wait";
+                
+                Swal.fire({
+                    title: 'Deploying Engine',
+                    text: 'Stress test initiated. Monitor the terminal below.',
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false,
+                    background: '#1e293b',
+                    color: '#fff'
+                });
+            }
+
+            function confirmStop() {
+                Swal.fire({
+                    title: 'Stop Test?',
+                    text: "This will kill all running processes immediately!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#ef4444',
+                    cancelButtonColor: '#334155',
+                    confirmButtonText: 'Yes, Kill It!',
+                    background: '#1e293b',
+                    color: '#fff'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        stopAttack();
+                    }
+                })
             }
 
             function stopAttack() {
-                if(confirm('EMERGENCY STOP initiated. Kill all processes?')) {
-                    // Navigate iframe to blank to close connection
-                    // PHP connection_aborted() will catch this and kill the process!
-                    document.getElementById('terminal-frame').src = 'about:blank';
-                    
-                    document.getElementById('btn-launch').innerText = "LAUNCH WARHEADS";
-                    document.getElementById('btn-launch').disabled = false;
-                    alert('ATTACK ABORTED. PROCESSES KILLED.');
-                }
+                // Navigate iframe to blank to trigger backend abort
+                document.getElementById('terminal-frame').src = 'about:blank';
+                
+                const btn = document.getElementById('btn-launch');
+                const btnText = document.getElementById('btn-text');
+                
+                btnText.innerText = "LAUNCH TEST";
+                btn.style.opacity = "1";
+                btn.style.cursor = "pointer";
+                
+                Swal.fire({
+                    title: 'Aborted',
+                    text: 'Process killed successfully.',
+                    icon: 'info',
+                    timer: 1500,
+                    showConfirmButton: false,
+                    background: '#1e293b',
+                    color: '#fff'
+                });
             }
         </script>
 
-
-        <div class="mt-4 text-center text-xs text-green-800">
-            CAUTION: USE RESPONSIBLY. FOR INTERNAL TESTING ONLY.
+        <div class="mt-6 text-center text-xs text-slate-500">
+            For internal stress testing and server validation only. Use responsibly.
         </div>
     </div>
 

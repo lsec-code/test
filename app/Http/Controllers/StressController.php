@@ -31,32 +31,31 @@ class StressController extends Controller
 
         // Path to Python Engine
         $scriptPath = public_path('stress_engine.py');
+        // Detect Python Path
         $python = 'python3'; 
-
-        $check = new Process(['python3', '--version']);
-        $check->run();
-        if (!$check->isSuccessful()) {
-             $check2 = new Process(['python', '--version']);
-             $check2->run();
-             if ($check2->isSuccessful()) {
-                 $python = 'python';
-             }
+        if (file_exists('/usr/bin/python3')) {
+            $python = '/usr/bin/python3';
+        } elseif (file_exists('/usr/bin/python')) {
+            $python = '/usr/bin/python';
+        } else {
+            // Fallback: Check which one works
+            $check = new Process(['python3', '--version']);
+            $check->run();
+            if (!$check->isSuccessful()) $python = 'python';
         }
         
         return response()->stream(function() use ($python, $scriptPath, $url, $threads, $duration, $port, $mode) {
             // Initial padding
             echo str_repeat(' ', 4096);
+            
+            // STREAM INIT MESSAGE
+            echo "<span style='color:cyan'>[SYSTEM] Initializing Engine...</span><br>";
+            echo "<span style='color:cyan'>[SYSTEM] Using Python: $python</span><br>";
+            echo "<span style='color:cyan'>[SYSTEM] Target: $url</span><br>";
+            echo str_repeat(' ', 1024);
             flush();
 
-            $cmd = "$python \"$scriptPath\" \"$url\" $threads $duration $port $mode";
-            // 2>&1 redirects Stderr to Stdout so we can see errors
-            $cmd = "$cmd 2>&1"; 
-            
-            $descriptorSpec = [
-                0 => ["pipe", "r"],
-                1 => ["pipe", "w"],
-                2 => ["pipe", "w"]
-            ];
+            $cmd = "$python \"$scriptPath\" \"$url\" $threads $duration $port $mode 2>&1"; // Capture Error
 
             $process = proc_open($cmd, $descriptorSpec, $pipes);
 
