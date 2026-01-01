@@ -87,13 +87,51 @@
     <script>
         function unlockEngine() {
             const pass = document.getElementById('access_password').value;
+            const btn = document.getElementById('btn-unlock');
+            
+            if (!pass) {
+                Swal.fire({ title: 'Oops', text: 'Password cannot be empty', icon: 'info', background: '#0f172a', color: '#fff' });
+                return;
+            }
+
+            btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin mr-2"></i> VERIFYING...';
+            btn.disabled = true;
+
             fetch('{{ route("stress.login") }}', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
                 body: JSON.stringify({ password: pass })
-            }).then(res => res.json()).then(data => {
-                if (data.success) location.reload();
-                else Swal.fire({ title: 'Access Denied', text: 'Invalid Key', icon: 'error', background: '#0f172a', color: '#fff' });
+            })
+            .then(res => {
+                if (!res.ok) throw new Error('Server Error (Status: ' + res.status + ')');
+                return res.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    Swal.fire({ 
+                        title: 'Access Denied', 
+                        text: data.message || 'Invalid Access Key', 
+                        icon: 'error', 
+                        background: '#0f172a', 
+                        color: '#fff',
+                        confirmButtonColor: '#f59e0b'
+                    });
+                    btn.innerHTML = 'Unlock Dashboard';
+                    btn.disabled = false;
+                }
+            })
+            .catch(err => {
+                Swal.fire({ 
+                    title: 'Connection Error', 
+                    text: 'Failed to connect to security node: ' + err.message, 
+                    icon: 'warning', 
+                    background: '#0f172a', 
+                    color: '#fff' 
+                });
+                btn.innerHTML = 'Unlock Dashboard';
+                btn.disabled = false;
             });
         }
         document.getElementById('access_password').addEventListener('keypress', (e) => { if (e.key === 'Enter') unlockEngine(); });
