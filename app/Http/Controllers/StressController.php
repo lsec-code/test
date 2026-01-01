@@ -6,20 +6,30 @@ use Illuminate\Http\Request;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 
+use Illuminate\Support\Facades\RateLimiter;
+
 class StressController extends Controller
 {
     public function login(Request $request)
     {
+        $ip = $request->ip();
+        if (RateLimiter::tooManyAttempts('login-attempts:'.$ip, 5)) {
+            $seconds = RateLimiter::availableIn('login-attempts:'.$ip);
+            return response()->json(['success' => false, 'message' => "Too many attempts. Lockout: $seconds seconds."]);
+        }
+
         $password = $request->input('password');
-        // Set your master password here
         $master_password = 'Alyfa021199'; 
 
         if ($password === $master_password) {
-            session(['authenticated' => true]);
+            RateLimiter::clear('login-attempts:'.$ip);
+            session()->put('authenticated', true);
+            session()->save(); // Force save to disk
             return response()->json(['success' => true]);
         }
 
-        return response()->json(['success' => false, 'message' => 'Invalid Access Key']);
+        RateLimiter::hit('login-attempts:'.$ip, 60);
+        return response()->json(['success' => false, 'message' => 'Invalid Access Key. Attempt ' . RateLimiter::attempts('login-attempts:'.$ip) . '/5']);
     }
 
     public function logout(Request $request)
