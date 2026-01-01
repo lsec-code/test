@@ -57,11 +57,20 @@ class StressController extends Controller
         if (PHP_OS_FAMILY === 'Linux') {
             // Linux CPU Load (1 min avg)
             $load = sys_getloadavg();
-            $cpuLoad = $load[0] * 100; // Rough estimate (Load / Cores is better but this works for demo)
+            $cpuLoad = ($load[0] * 100) / 4; // Normalized for 4 cores if possible
             
-            // Linux RAM
-            $free = shell_exec("free | grep Mem | awk '{print $3/$2 * 100.0}'");
-            $ramUsage = (float)$free;
+            // Linux RAM (Robust Detection)
+            if (file_exists("/proc/meminfo")) {
+                $memData = file_get_contents("/proc/meminfo");
+                preg_match('/MemTotal:\s+(\d+)/', $memData, $total);
+                preg_match('/MemAvailable:\s+(\d+)/', $memData, $avail);
+                if (isset($total[1]) && isset($avail[1])) {
+                    $totalMem = (int)$total[1];
+                    $availMem = (int)$avail[1];
+                    $usedMem = $totalMem - $availMem;
+                    $ramUsage = ($usedMem / $totalMem) * 100;
+                }
+            }
         } else {
             // Windows CPU
             $wmi = shell_exec('wmic cpu get loadpercentage /Value');
