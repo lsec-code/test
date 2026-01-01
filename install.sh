@@ -87,8 +87,19 @@ export COMPOSER_ALLOW_SUPERUSER=1
 # 3. Laravel Setup
 echo -e "${GREEN}[+] Configuring Laravel...${NC}"
 cp .env.example .env
+
+# AUTOMATIC FIX: Use File Session to avoid Database errors
+sed -i 's/SESSION_DRIVER=database/SESSION_DRIVER=file/g' .env
+sed -i 's/DB_CONNECTION=mysql/DB_CONNECTION=sqlite/g' .env
+
+# Create SQLite DB if missing (required for basic operations sometimes)
+if [ ! -f "database/database.sqlite" ]; then
+    touch database/database.sqlite
+fi
+
 composer install --optimize-autoloader --no-dev
 php artisan key:generate
+php artisan migrate --force # Run migrations just in case
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
@@ -96,6 +107,8 @@ php artisan view:cache
 # Permissions
 chown -R www-data:www-data $PROJECT_DIR
 chmod -R 775 $PROJECT_DIR/storage
+chmod -R 775 $PROJECT_DIR/bootstrap/cache
+chmod -R 775 $PROJECT_DIR/database
 chmod -R 775 $PROJECT_DIR/bootstrap/cache
 
 # 4. Nginx Setup
