@@ -229,21 +229,37 @@
                         <span class="text-[10px] font-mono text-slate-400 uppercase tracking-widest font-bold">Terminal — Target Ping</span>
                         <div class="w-12"></div>
                     </div>
-                    <iframe id="ping-frame" class="w-full h-[400px] border-none bg-black"></iframe>
+                    <div id="ping-terminal" class="w-full h-[400px] bg-black p-4 font-mono text-[12px] text-emerald-400 overflow-y-auto leading-relaxed scroll-smooth">
+                        <div class="text-slate-600 italic">Terminal ready. Waiting for strike...</div>
+                    </div>
                 </div>
             </div>
 
             <style>
                 .mac-terminal { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
                 .mac-terminal:hover { transform: translateY(-5px); border-color: #3b82f6; }
+                #ping-terminal::-webkit-scrollbar { width: 6px; }
+                #ping-terminal::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
             </style>
 
             <script>
+                let pingInterval = null;
+
+                function appendPingLog(msg, color = 'emerald-400') {
+                    const terminal = document.getElementById('ping-terminal');
+                    const div = document.createElement('div');
+                    div.className = `text-${color}`;
+                    div.innerText = msg;
+                    terminal.appendChild(div);
+                    terminal.scrollTop = terminal.scrollHeight;
+                }
+
                 function startAttack() {
                     const btn = document.getElementById('btn-launch');
                     const btnText = document.getElementById('btn-text');
                     const indicator = document.getElementById('strike-indicator');
                     const urlInput = document.querySelector('input[name="url"]').value;
+                    const terminal = document.getElementById('ping-terminal');
                     
                     if (indicator) indicator.classList.remove('hidden');
                     if (btnText) btnText.innerText = "STRIKE ACTIVE...";
@@ -253,10 +269,22 @@
                         btn.disabled = true;
                     }
 
-                    // Start Ping Tool (with Cache Buster and slight delay)
-                    setTimeout(() => {
-                        document.getElementById('ping-frame').src = '{{ route("stress.ping") }}?url=' + encodeURIComponent(urlInput) + '&t=' + Date.now();
-                    }, 500);
+                    // Reset Ping Terminal
+                    terminal.innerHTML = `<div class="text-sky-400 font-bold">[SESSION] LIVE CONTEXT ESTABLISHED FOR: ${urlInput}</div><div class="text-slate-500">[*] Initializing AJAX Diagnostic Probe...</div>`;
+                    
+                    // Start AJAX Polling for Ping
+                    if (pingInterval) clearInterval(pingInterval);
+                    pingInterval = setInterval(() => {
+                        fetch(`{{ route("stress.ping-single") }}?url=${encodeURIComponent(urlInput)}`)
+                            .then(res => res.json())
+                            .then(data => {
+                                let color = 'emerald-400';
+                                if (data.output.includes('[DOWN]') || data.output.includes('timed out')) color = 'red-500';
+                                if (data.output.includes('[TCP-PROBE]')) color = 'sky-400';
+                                appendPingLog(data.output, color);
+                            })
+                            .catch(err => appendPingLog(`[INTERNAL-ERR] ${err.message}`, 'amber-500'));
+                    }, 2000);
                     
                     Swal.fire({
                         title: 'V7 Platinum Engaged',
@@ -289,7 +317,8 @@
 
                 function stopAttack() {
                     document.getElementById('terminal-frame').src = 'about:blank';
-                    document.getElementById('ping-frame').src = 'about:blank';
+                    if (pingInterval) clearInterval(pingInterval);
+                    appendPingLog("[*] Monitoring terminated.", 'slate-500');
                     resetStrikeUI();
                     
                     Swal.fire({

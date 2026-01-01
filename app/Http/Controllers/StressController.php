@@ -81,6 +81,50 @@ class StressController extends Controller
         return round($value, $precision) . ' ' . $units[$pow]; 
     }
 
+    public function pingSingle(Request $request)
+    {
+        $url = $request->input('url');
+        $host = parse_url($url, PHP_URL_HOST);
+        if (!$host) {
+            preg_match('/^([^\/]+)/', str_replace(['http://', 'https://'], '', $url), $matches);
+            $host = $matches[1] ?? $url;
+        }
+        $host = trim($host, " /:?#");
+
+        if (empty($host)) return response()->json(['output' => 'Invalid Host']);
+
+        $output = "Checking...";
+        if (PHP_OS_FAMILY === 'Windows') {
+            $res = shell_exec("ping -n 1 -w 1000 $host");
+            if ($res) {
+                // Find the line with Reply or Request
+                $lines = explode("\n", $res);
+                foreach ($lines as $line) {
+                    if (str_contains($line, 'Reply') || str_contains($line, 'Request') || str_contains($line, 'unreachable')) {
+                        $output = trim($line);
+                        break;
+                    }
+                }
+            } else {
+                // TCP Probe
+                $start = microtime(true);
+                $fp = @fsockopen($host, 80, $errno, $errstr, 1);
+                if ($fp) {
+                    $lat = round((microtime(true) - $start) * 1000, 2);
+                    $output = "[TCP-PROBE] $host: RESPONSE OK (Lat: {$lat}ms)";
+                    fclose($fp);
+                } else {
+                    $output = "[DOWN] $host: No response";
+                }
+            }
+        } else {
+            $res = shell_exec("ping -c 1 -W 1 $host");
+            $output = $res ?: "[DOWN] $host: ICMP blocked";
+        }
+
+        return response()->json(['output' => $output]);
+    }
+
     public function ping(Request $request)
     {
         // 0. Release session lock immediately to allow parallel execution
