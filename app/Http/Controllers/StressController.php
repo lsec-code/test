@@ -109,8 +109,7 @@ class StressController extends Controller
             }
 
             // Force Unbuffered Output (-u)
-            // INJECT SHELL TEST
-            $cmd = "echo \"[SHELL] SYSTEM ALIVE\" && $python -u \"$scriptPath\" \"$url\" $threads $duration $port $mode 2>&1"; 
+            $cmd = "$python -u \"$scriptPath\" \"$url\" $threads $duration $port $mode 2>&1"; // Capture Error
             
             echo "<span style='color:yellow'>[SYSTEM] CMD: $cmd</span><br>";
             echo str_repeat(' ', 1024);
