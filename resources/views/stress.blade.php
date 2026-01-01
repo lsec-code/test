@@ -70,7 +70,7 @@
             <div class="bg-slate-900/50 border border-slate-700/50 rounded-2xl p-5 shadow-2xl backdrop-blur-sm">
                 <div class="flex justify-between items-start mb-4">
                     <div>
-                        <span class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Processor Load</span>
+                <span class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Source Node - Processor Load</span>
                         <h3 id="cpu-text" class="text-2xl font-black text-sky-400 font-mono">0%</h3>
                     </div>
                 </div>
@@ -114,10 +114,12 @@
                         <span class="text-slate-500">Storage Health:</span>
                         <span class="text-purple-400 font-bold font-mono">{{ $specs['disk_free'] }} FREE</span>
                     </div>
-                    <div class="flex justify-between text-[11px]">
-                        <span class="text-slate-500">Network Interface:</span>
-                        <span class="text-amber-500 font-bold font-mono">1Gbps Port</span>
+                        <span class="text-slate-500">Source Connectivity:</span>
+                        <span class="text-amber-500 font-bold font-mono">1Gbps Aggregated Port</span>
                     </div>
+                </div>
+                <div id="strike-indicator" class="hidden mt-4 pt-3 border-t border-slate-800 text-center animate-pulse">
+                    <span class="text-red-500 font-black text-[11px] tracking-widest uppercase"><i class="fa-solid fa-radiation mr-2"></i> ACTIVE STRIKE IN PROGRESS <i class="fa-solid fa-radiation ml-2"></i></span>
                 </div>
             </div>
         </div>
@@ -147,12 +149,12 @@
 
             <div class="col-span-2">
                  <label class="block text-xs font-semibold uppercase text-slate-400 mb-2">Attack Mode</label>
-                  <select name="mode" id="mode" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500">
-                    <option value="1">Basic HTTP Request (Standard Test)</option>
-                    <option value="2">Browser Emulation (Use for 403 Forbidden)</option>
-                    <option value="3">Random URL Patterns (Bypass Cache)</option>
-                    <option value="4">Full Stress Test (Killer Mode V5)</option>
-                    <option value="5" selected>Slow Attack (Slowloris / WAF Bypass)</option>
+                  <select name="mode" id="mode" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 font-mono text-xs">
+                    <option value="1">Application Layer Flood (L7 - Standard)</option>
+                    <option value="2">Human Identity Emulation (L7 - Advanced Bypass)</option>
+                    <option value="3">DB & Search Exhaustion (L7 - Cache Bypass)</option>
+                    <option value="4">Buffer & Memory Overflow (L7 - Killer V6)</option>
+                    <option value="5" selected>Connection Slots Exhaustion (L7 - Slowloris)</option>
                 </select>
             </div>
 
@@ -176,14 +178,17 @@
             function startAttack() {
                 const btn = document.getElementById('btn-launch');
                 const btnText = document.getElementById('btn-text');
+                const indicator = document.getElementById('strike-indicator');
                 
-                btnText.innerText = "DEPLOYING...";
+                indicator.classList.remove('hidden');
+                btnText.innerText = "STRIKE ACTIVE...";
                 btn.style.opacity = "0.7";
                 btn.style.cursor = "wait";
+                btn.disabled = true;
                 
                 Swal.fire({
-                    title: 'Deploying Engine',
-                    text: 'Stress test initiated. Monitor the terminal below.',
+                    title: 'V6 Engine Engaged',
+                    text: 'L7 Attack Protocol initiated. Target saturation in progress.',
                     icon: 'success',
                     timer: 2000,
                     showConfirmButton: false,
@@ -194,13 +199,13 @@
 
             function confirmStop() {
                 Swal.fire({
-                    title: 'Stop Test?',
-                    text: "This will kill all running processes immediately!",
+                    title: 'Abort Operation?',
+                    text: "This will terminate all V6 processes immediately!",
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#ef4444',
                     cancelButtonColor: '#334155',
-                    confirmButtonText: 'Yes, Kill It!',
+                    confirmButtonText: 'Yes, Abort NOW',
                     background: '#1e293b',
                     color: '#fff'
                 }).then((result) => {
@@ -213,6 +218,7 @@
             function stopAttack() {
                 // Navigate iframe to blank to trigger backend abort
                 document.getElementById('terminal-frame').src = 'about:blank';
+                document.getElementById('strike-indicator').classList.add('hidden');
                 
                 const btn = document.getElementById('btn-launch');
                 const btnText = document.getElementById('btn-text');
@@ -220,10 +226,11 @@
                 btnText.innerText = "LAUNCH TEST";
                 btn.style.opacity = "1";
                 btn.style.cursor = "pointer";
+                btn.disabled = false;
                 
                 Swal.fire({
-                    title: 'Aborted',
-                    text: 'Process killed successfully.',
+                    title: 'Mission Aborted',
+                    text: 'Strike protocols terminated.',
                     icon: 'info',
                     timer: 1500,
                     showConfirmButton: false,
