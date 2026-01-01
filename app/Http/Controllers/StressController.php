@@ -84,28 +84,58 @@ class StressController extends Controller
     public function ping(Request $request)
     {
         $url = $request->input('url');
-        // Extract host from URL
-        $host = parse_url($url, PHP_URL_HOST) ?: $url;
         
+        // Robust host extraction
+        $host = parse_url($url, PHP_URL_HOST);
+        if (!$host) {
+            // Regex fallback for non-schema URLs like "domain.com/path"
+            preg_match('/^([^\/]+)/', str_replace(['http://', 'https://'], '', $url), $matches);
+            $host = $matches[1] ?? $url;
+        }
+        $host = trim($host, " /");
+
         return response()->stream(function() use ($host) {
-            // Disable all buffering
-            if (ob_get_level()) ob_end_clean();
+            // Force disable buffering
+            while (ob_get_level() > 0) ob_end_clean();
             
             echo str_repeat(' ', 4096); 
             echo '<html><body style="background:#000; color:#4ade80; font-family:monospace; font-size:12px; margin:0; padding:10px; line-height:1.2;">';
             echo "<span style='color:#38bdf8'>[NETWORK] STARTING LIVE MONITOR FOR: $host</span><br><br>";
-            
-            $cmd = (PHP_OS_FAMILY === 'Windows') ? "ping -t $host" : "ping $host";
-            $descriptorspec = [1 => ["pipe", "w"], 2 => ["pipe", "w"]];
-            $process = proc_open($cmd, $descriptorspec, $pipes);
+            flush();
 
-            if (is_resource($process)) {
-                while ($line = fgets($pipes[1])) {
-                    echo htmlspecialchars($line) . "<br>";
+            if (empty($host)) {
+                echo "<span style='color:#ef4444'>[ERROR] Invalid Host. Check Target URL.</span>";
+                return;
+            }
+
+            if (PHP_OS_FAMILY === 'Windows') {
+                // Loop-based ping for Windows to bypass pipe buffering issues
+                for ($i = 0; $i < 600; $i++) { // Max ~10 mins
+                    $out = [];
+                    exec("ping -n 1 $host", $out);
+                    foreach ($out as $line) {
+                        if (str_contains($line, 'Reply from') || str_contains($line, 'Request timed out') || str_contains($line, 'unreachable')) {
+                            echo htmlspecialchars($line) . "<br>";
+                        }
+                    }
                     echo '<script>window.scrollTo(0, document.body.scrollHeight);</script>';
                     flush();
+                    if (connection_aborted()) break;
+                    sleep(1);
                 }
-                proc_close($process);
+            } else {
+                $cmd = "ping $host";
+                $descriptorspec = [1 => ["pipe", "w"], 2 => ["pipe", "w"]];
+                $process = proc_open($cmd, $descriptorspec, $pipes);
+
+                if (is_resource($process)) {
+                    while ($line = fgets($pipes[1])) {
+                        echo htmlspecialchars($line) . "<br>";
+                        echo '<script>window.scrollTo(0, document.body.scrollHeight);</script>';
+                        flush();
+                    }
+                    proc_close($process);
+                }
             }
         }, 200, ['Content-Type' => 'text/html', 'X-Accel-Buffering' => 'no']);
     }
