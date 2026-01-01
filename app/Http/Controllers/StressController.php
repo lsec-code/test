@@ -97,11 +97,22 @@ class StressController extends Controller
             echo "<span style='color:cyan'>[SYSTEM] Initializing Engine...</span><br>";
             echo "<span style='color:cyan'>[SYSTEM] Using Python: $python</span><br>";
             echo "<span style='color:cyan'>[SYSTEM] Target: $url</span><br>";
-            echo str_repeat(' ', 1024);
-            flush();
+            
+            // DIAGNOSTICS
+            if (file_exists($scriptPath)) {
+                echo "<span style='color:green'>[SYSTEM] Script Found: $scriptPath</span><br>";
+                chmod($scriptPath, 0755); // Ensure executable
+            } else {
+                echo "<span style='color:red'>[SYSTEM] FATAL: Script NOT FOUND at $scriptPath</span><br>";
+                flush();
+                return;
+            }
 
             // Force Unbuffered Output (-u)
             $cmd = "$python -u \"$scriptPath\" \"$url\" $threads $duration $port $mode 2>&1"; // Capture Error
+            echo "<span style='color:yellow'>[SYSTEM] CMD: $cmd</span><br>";
+            echo str_repeat(' ', 1024);
+            flush();
 
             $descriptorSpec = [
                 0 => ["pipe", "r"],
