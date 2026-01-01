@@ -88,18 +88,33 @@ export COMPOSER_ALLOW_SUPERUSER=1
 echo -e "${GREEN}[+] Configuring Laravel...${NC}"
 cp .env.example .env
 
-# AUTOMATIC FIX: Use File Session to avoid Database errors
-sed -i 's/SESSION_DRIVER=database/SESSION_DRIVER=file/g' .env
-sed -i 's/DB_CONNECTION=mysql/DB_CONNECTION=sqlite/g' .env
+# BRUTE FORCE CONFIGURATION (Ensure no DB errors)
+# Delete existing keys to prevent duplicates
+sed -i '/SESSION_DRIVER=/d' .env
+sed -i '/DB_CONNECTION=/d' .env
+sed -i '/DB_DATABASE=/d' .env
 
-# Create SQLite DB if missing (required for basic operations sometimes)
+# Append known working config
+echo "" >> .env
+echo "SESSION_DRIVER=file" >> .env
+echo "DB_CONNECTION=sqlite" >> .env
+echo "DB_DATABASE=${PROJECT_DIR}/database/database.sqlite" >> .env
+
+# Ensure Database File Exists & Writable
+mkdir -p database
 if [ ! -f "database/database.sqlite" ]; then
     touch database/database.sqlite
 fi
+chmod -R 777 database # World writable to avoid any permission issues
+chmod 666 database/database.sqlite
 
 composer install --optimize-autoloader --no-dev
 php artisan key:generate
-php artisan migrate --force # Run migrations just in case
+
+# FORCE CLEAR CACHE
+rm -f bootstrap/cache/*.php
+php artisan config:clear
+php artisan migrate --force --database=sqlite
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
