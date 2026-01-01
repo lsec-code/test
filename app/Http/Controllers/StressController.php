@@ -6,10 +6,72 @@ use Illuminate\Http\Request;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 
+use Illuminate\Support\Facades\RateLimiter;
+use Exception;
+
 class StressController extends Controller
 {
+    public function login(Request $request)
+    {
+        try {
+            $ip = $request->ip();
+            $key = 'login-attempts:' . $ip;
+
+            if (RateLimiter::tooManyAttempts($key, 5)) {
+                $seconds = RateLimiter::availableIn($key);
+                return response()->json([
+                    'success' => false, 
+                    'message' => "SECURITY LOCKOUT: Wait $seconds seconds."
+                ], 429);
+            }
+
+            $password = $request->input('password');
+            $master_password = 'Alyfa021199'; 
+
+            if ($password === $master_password) {
+                RateLimiter::clear($key);
+                session()->put('authenticated', true);
+                session()->save(); 
+                return response()->json([
+                    'success' => true,
+                    'message' => 'ACCESS GRANTED: Synchronizing session...'
+                ]);
+            }
+
+            RateLimiter::hit($key, 60);
+            $attempts = RateLimiter::attempts($key);
+            
+            return response()->json([
+                'success' => false, 
+                'message' => "INVALID KEY: Access denied ($attempts/5 attempts)."
+            ], 401);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false, 
+                'message' => 'Auth Node Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function logout(Request $request)
+    {
+        session()->forget('authenticated');
+        return redirect()->to('/');
+    }
+
     public function index()
     {
+        if (request()->secure() || env('FORCE_HTTPS', false)) {
+            \URL::forceScheme('https');
+        }
+        
+        $authenticated = session('authenticated', false);
+        
+        if (!$authenticated) {
+            return view('stress', ['authenticated' => false, 'specs' => []]);
+        }
+
         // Default values
         $cpu = "Unknown Processor";
         $cores = "1";
@@ -40,7 +102,7 @@ class StressController extends Controller
             'disk_free' => $this->formatBytes($diskFree),
         ];
 
-        return view('stress', compact('specs'));
+        return view('stress', compact('specs', 'authenticated'));
     }
 
     public function fetchProxies(Request $request)
@@ -67,6 +129,7 @@ class StressController extends Controller
 
     public function stats()
     {
+        if (!session('authenticated')) return response()->json(['error' => 'Unauthorized'], 403);
         $cpuLoad = rand(5, 10);
         $ramUsage = rand(10, 20);
 
@@ -105,6 +168,12 @@ class StressController extends Controller
 
     public function start(Request $request)
     {
+        if (!session('authenticated')) {
+            return response()->stream(function() {
+                echo "<h3>[403] ACCESS DENIED: Invalid Security Token.</h3>";
+            }, 403, ['Content-Type' => 'text/html']);
+        }
+
         @session_write_close(); 
         set_time_limit(0);
 
@@ -148,7 +217,15 @@ class StressController extends Controller
         $host = parse_url($url, PHP_URL_HOST) ?? trim(str_replace(['http://', 'https://'], '', $url), '/');
 
         $scriptPath = public_path('stress_engine.py');
-        $python = (PHP_OS_FAMILY === 'Linux') ? (file_exists('/usr/bin/python3') ? '/usr/bin/python3' : 'python3') : 'python';
+        $python = 'python3';
+        if (PHP_OS_FAMILY === 'Windows') {
+            $python = 'python';
+            exec("where python", $out, $ret);
+            if ($ret !== 0) {
+                exec("where py", $out2, $ret2);
+                if ($ret2 === 0) $python = 'py';
+            }
+        }
 
         return response()->stream(function() use ($python, $scriptPath, $url, $threads, $limit_val, $port, $mode, $limit_type, $rps, $host, $proxyFile, $proxy_type) {
             while (ob_get_level() > 0) ob_end_clean();
@@ -158,6 +235,15 @@ class StressController extends Controller
             echo '<html><body style="background:#000; color:#4ade80; font-family:monospace; font-size:12px; margin:0; padding:10px; border:0;">';
             
             $proxyArg = $proxyFile ? "--proxy-file \"$proxyFile\" --proxy-type \"$proxy_type\"" : "";
+            
+            if (!file_exists($scriptPath)) {
+                echo "<h3>[ERROR] Engine script not found at: $scriptPath</h3>";
+                return;
+            }
+
+            echo "[*] System: Enforcing Python Environment ($python)...<br>";
+            echo "[*] Node: Initializing Gold Engine Handshake...<br>";
+
             $cmd = "$python -u \"$scriptPath\" \"$url\" $threads $limit_val $port $mode $limit_type $rps $proxyArg 2>&1";
             $descriptorspec = [
                 0 => ["pipe", "r"],
