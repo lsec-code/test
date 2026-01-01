@@ -88,7 +88,7 @@ class StressController extends Controller
     public function start(Request $request)
     {
         $request->validate([
-            'url' => 'required|string',
+            'url' => 'required|string|min:12', // Min length to avoid https:// empty
             'threads' => 'required|integer|min:1|max:1000',
             'duration' => 'required|integer|min:5|max:300',
             'port' => 'required|integer|min:1|max:65535',
@@ -96,52 +96,73 @@ class StressController extends Controller
         ]);
 
         $url = $request->input('url');
-        $threads = $request->input('threads');
-        $duration = $request->input('duration');
-        $port = $request->input('port');
-        $mode = $request->input('mode');
+        if (trim($url) === "https://" || trim($url) === "http://") {
+             return response()->json(['error' => 'Please enter a valid target URL'], 422);
+        }
+
+        $threads = (int)$request->input('threads');
+        $duration = (int)$request->input('duration');
+        $port = (int)$request->input('port');
+        $mode = (int)$request->input('mode');
 
         $scriptPath = public_path('stress_engine.py');
-        $python = 'python3';
-        if (PHP_OS_FAMILY === 'Windows') $python = 'python';
+        
+        // Find Python executable more robustly for Windows/Linux
+        $python = 'python';
+        if (PHP_OS_FAMILY === 'Linux') {
+            if (file_exists('/usr/bin/python3')) $python = '/usr/bin/python3';
+            elseif (file_exists('/usr/bin/python')) $python = '/usr/bin/python';
+            else $python = 'python3';
+        }
 
         return response()->stream(function() use ($python, $scriptPath, $url, $threads, $duration, $port, $mode) {
-            echo str_repeat(' ', 4096); // Nginx Buf
-            echo '<html><body style="background-color:#000; color:#4ade80; font-family:monospace; font-size:12px; margin:0; padding:15px;">';
+            echo str_repeat(' ', 4096); 
+            echo '<html><body style="background-color:#000; color:#4ade80; font-family:monospace; font-size:12px; margin:0; padding:15px; line-height:1.4;">';
             echo '<script>setInterval(() => { window.scrollTo(0, document.body.scrollHeight); }, 100);</script>';
-            echo "<span style='color:#38bdf8'>[SYSTEM] INITIALIZING V7 PLATINUM ENGINE...</span><br>";
+            
+            echo "<span style='color:#38bdf8'>[SYSTEM] MONSTER V7 PLATINUM - DEBUG MODE</span><br>";
+            echo "<span style='color:#64748b'>[INFO] OS: " . PHP_OS_FAMILY . "</span><br>";
+            echo "<span style='color:#64748b'>[INFO] Python: $python</span><br>";
+            echo "<span style='color:#64748b'>[INFO] Script: $scriptPath</span><br>";
             
             if (!file_exists($scriptPath)) {
-                echo "<span style='color:red'>[FATAL] ENGINE SCRIPT MISSING!</span><br>";
+                echo "<span style='color:#ef4444'>[FATAL] Stress engine script not found at $scriptPath</span><br>";
                 return;
             }
 
+            // Quote arguments for safety
             $cmd = "$python -u \"$scriptPath\" \"$url\" $threads $duration $port $mode 2>&1";
+            echo "<span style='color:#64748b'>[DEBUG] CMD: $cmd</span><br><br>";
+            flush();
+
             $process = proc_open($cmd, [0 => ["pipe", "r"], 1 => ["pipe", "w"]], $pipes);
 
             if (is_resource($process)) {
                 while (!feof($pipes[1])) {
                     $line = fgets($pipes[1]);
                     if ($line) {
-                        echo htmlspecialchars($line) . "<br>";
+                        // Ensure UTF-8 for htmlspecialchars
+                        $safe_line = mb_convert_encoding($line, 'UTF-8', 'UTF-8');
+                        echo htmlspecialchars($safe_line) . "<br>";
                         echo str_repeat(' ', 1024); 
                         flush();
                     }
                     if (connection_aborted()) {
                         $pinfo = proc_get_status($process);
-                        $pid = $pinfo['pid'];
                         if (PHP_OS_FAMILY === 'Windows') {
-                            exec("taskkill /F /T /PID $pid");
+                            exec("taskkill /F /T /PID " . $pinfo['pid']);
                         } else {
-                            exec("pkill -P $pid"); // Kill child processes
+                            exec("pkill -P " . $pinfo['pid']);
                             proc_terminate($process, 9);
                         }
                         break;
                     }
                 }
                 fclose($pipes[1]);
-                proc_close($process);
-                echo "<br><span style='color:#fbbf24'>[*] OPERATION FINISHED.</span>";
+                $exitCode = proc_close($process);
+                echo "<br><span style='color:#fbbf24'>[*] OPERATION TERMINATED. EXIT CODE: $exitCode</span>";
+            } else {
+                 echo "<span style='color:#ef4444'>[FATAL] Failed to start process! Check if Python is installed and in PATH.</span><br>";
             }
         }, 200, ['X-Accel-Buffering' => 'no', 'Content-Type' => 'text/html']);
     }
