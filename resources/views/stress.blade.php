@@ -90,48 +90,54 @@
             const btn = document.getElementById('btn-unlock');
             
             if (!pass) {
-                Swal.fire({ title: 'Oops', text: 'Password cannot be empty', icon: 'info', background: '#0f172a', color: '#fff' });
+                Swal.fire({ title: 'Access Restricted', text: 'Master Key is required', icon: 'warning', background: '#0f172a', color: '#fff' });
                 return;
             }
 
-            btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin mr-2"></i> VERIFYING...';
+            btn.innerHTML = '<i class="fa-solid fa-sync animate-spin mr-2"></i> VERIFYING...';
             btn.disabled = true;
 
             fetch(window.location.origin + '/login', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}' 
+                },
                 body: JSON.stringify({ password: pass })
             })
             .then(async res => {
-                const isJson = res.headers.get('content-type')?.includes('application/json');
+                const contentType = res.headers.get('content-type');
+                const isJson = contentType && contentType.includes('application/json');
                 const data = isJson ? await res.json() : null;
 
                 if (!res.ok) {
-                    throw new Error(data?.message || 'Server Error ' + res.status);
+                    throw new Error(data?.message || 'Security Error (Status: ' + res.status + ')');
                 }
                 return data;
             })
             .then(data => {
                 if (data && data.success) {
-                    location.reload();
-                } else {
                     Swal.fire({ 
-                        title: 'Access Denied', 
-                        text: data?.message || 'Invalid Access Key', 
-                        icon: 'error', 
+                        title: 'Access Granted', 
+                        text: data.message || 'Identity Verified. Redirecting...', 
+                        icon: 'success', 
+                        timer: 1500,
+                        showConfirmButton: false,
                         background: '#0f172a', 
-                        color: '#fff'
+                        color: '#fff' 
                     });
-                    btn.innerHTML = 'Unlock Dashboard';
-                    btn.disabled = false;
+                    setTimeout(() => location.reload(), 1600);
+                } else {
+                    throw new Error(data?.message || 'Access Denied');
                 }
             })
             .catch(err => {
-                console.error("Login Failure:", err);
+                console.error("Auth System Log:", err);
                 Swal.fire({ 
-                    title: 'System Fault', 
+                    title: 'System Alert', 
                     text: err.message, 
-                    icon: 'warning', 
+                    icon: 'error', 
                     background: '#0f172a', 
                     color: '#fff' 
                 });

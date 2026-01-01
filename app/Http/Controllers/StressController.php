@@ -15,25 +15,42 @@ class StressController extends Controller
     {
         try {
             $ip = $request->ip();
-            if (RateLimiter::tooManyAttempts('login-attempts:'.$ip, 5)) {
-                $seconds = RateLimiter::availableIn('login-attempts:'.$ip);
-                return response()->json(['success' => false, 'message' => "Too many attempts. Lockout: $seconds seconds."]);
+            $key = 'login-attempts:' . $ip;
+
+            if (RateLimiter::tooManyAttempts($key, 5)) {
+                $seconds = RateLimiter::availableIn($key);
+                return response()->json([
+                    'success' => false, 
+                    'message' => "SECURITY LOCKOUT: Wait $seconds seconds."
+                ], 429);
             }
 
             $password = $request->input('password');
             $master_password = 'Alyfa021199'; 
 
             if ($password === $master_password) {
-                RateLimiter::clear('login-attempts:'.$ip);
+                RateLimiter::clear($key);
                 session()->put('authenticated', true);
                 session()->save(); 
-                return response()->json(['success' => true]);
+                return response()->json([
+                    'success' => true,
+                    'message' => 'ACCESS GRANTED: Synchronizing session...'
+                ]);
             }
 
-            RateLimiter::hit('login-attempts:'.$ip, 60);
-            return response()->json(['success' => false, 'message' => 'Invalid Access Key. Attempt ' . RateLimiter::attempts('login-attempts:'.$ip) . '/5']);
+            RateLimiter::hit($key, 60);
+            $attempts = RateLimiter::attempts($key);
+            
+            return response()->json([
+                'success' => false, 
+                'message' => "INVALID KEY: Access denied ($attempts/5 attempts)."
+            ], 401);
+
         } catch (Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Server Configuration Error: ' . $e->getMessage()], 500);
+            return response()->json([
+                'success' => false, 
+                'message' => 'Auth Node Error: ' . $e->getMessage()
+            ], 500);
         }
     }
 
