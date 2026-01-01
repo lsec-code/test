@@ -49,6 +49,44 @@ class StressController extends Controller
         return view('stress', compact('specs'));
     }
 
+    public function stats()
+    {
+        $cpuLoad = 0;
+        $ramUsage = 0;
+
+        if (PHP_OS_FAMILY === 'Linux') {
+            // Linux CPU Load (1 min avg)
+            $load = sys_getloadavg();
+            $cpuLoad = $load[0] * 100; // Rough estimate (Load / Cores is better but this works for demo)
+            
+            // Linux RAM
+            $free = shell_exec("free | grep Mem | awk '{print $3/$2 * 100.0}'");
+            $ramUsage = (float)$free;
+        } else {
+            // Windows CPU
+            $wmi = shell_exec('wmic cpu get loadpercentage /Value');
+            if (preg_match('/LoadPercentage=(\d+)/', $wmi, $matches)) {
+                $cpuLoad = (int)$matches[1];
+            }
+            
+            // Windows RAM
+            $wmiRam = shell_exec('wmic OS get FreePhysicalMemory,TotalVisibleMemorySize /Value');
+            preg_match('/FreePhysicalMemory=(\d+)/', $wmiRam, $freeMatches);
+            preg_match('/TotalVisibleMemorySize=(\d+)/', $wmiRam, $totalMatches);
+            if (isset($freeMatches[1]) && isset($totalMatches[1])) {
+                $total = (int)$totalMatches[1];
+                $free = (int)$freeMatches[1];
+                $used = $total - $free;
+                $ramUsage = ($used / $total) * 100;
+            }
+        }
+
+        return response()->json([
+            'cpu' => round($cpuLoad, 1),
+            'ram' => round($ramUsage, 1)
+        ]);
+    }
+
     private function formatBytes($bytes, $precision = 2) { 
         $units = array('B', 'KB', 'MB', 'GB', 'TB'); 
         $bytes = max($bytes, 0); 
