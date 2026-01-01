@@ -202,22 +202,48 @@
 
             </div>
             
-            <!-- TERMINAL SECTION -->
-            <div class="mt-8">
-                <div class="flex justify-between items-center mb-2 px-1">
-                    <label class="text-[10px] font-bold uppercase text-slate-500 tracking-widest flex items-center gap-2">
-                        <i class="fa-solid fa-terminal text-sky-500"></i> Realtime Strike Logs
-                    </label>
-                    <span class="text-[10px] text-slate-600 font-mono">Stream: V7 Platinum Core</span>
+            <!-- TERMINAL SECTION (macOS STYLE) -->
+            <div class="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- LEFT TERMINAL: STRIKE LOGS -->
+                <div class="mac-terminal rounded-xl overflow-hidden shadow-2xl bg-black border border-slate-700/50">
+                    <div class="bg-slate-800/80 px-4 py-2 flex items-center justify-between border-b border-slate-700/50">
+                        <div class="flex gap-2">
+                            <div class="w-3 h-3 rounded-full bg-[#ff5f56]"></div>
+                            <div class="w-3 h-3 rounded-full bg-[#ffbd2e]"></div>
+                            <div class="w-3 h-3 rounded-full bg-[#27c93f]"></div>
+                        </div>
+                        <span class="text-[10px] font-mono text-slate-400 uppercase tracking-widest font-bold">Terminal — Strike Logs</span>
+                        <div class="w-12"></div>
+                    </div>
+                    <iframe name="terminal-frame" id="terminal-frame" class="w-full h-[400px] border-none bg-black"></iframe>
                 </div>
-                <iframe name="terminal-frame" id="terminal-frame" class="w-full h-[450px] border border-slate-800 rounded-2xl shadow-2xl bg-black"></iframe>
+
+                <!-- RIGHT TERMINAL: LIVE PING -->
+                <div class="mac-terminal rounded-xl overflow-hidden shadow-2xl bg-black border border-slate-700/50">
+                    <div class="bg-slate-800/80 px-4 py-2 flex items-center justify-between border-b border-slate-700/50">
+                        <div class="flex gap-2">
+                            <div class="w-3 h-3 rounded-full bg-[#ff5f56]"></div>
+                            <div class="w-3 h-3 rounded-full bg-[#ffbd2e]"></div>
+                            <div class="w-3 h-3 rounded-full bg-[#27c93f]"></div>
+                        </div>
+                        <span class="text-[10px] font-mono text-slate-400 uppercase tracking-widest font-bold">Terminal — Target Ping</span>
+                        <div class="w-12"></div>
+                    </div>
+                    <iframe id="ping-frame" class="w-full h-[400px] border-none bg-black"></iframe>
+                </div>
             </div>
+
+            <style>
+                .mac-terminal { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+                .mac-terminal:hover { transform: translateY(-5px); border-color: #3b82f6; }
+            </style>
 
             <script>
                 function startAttack() {
                     const btn = document.getElementById('btn-launch');
                     const btnText = document.getElementById('btn-text');
                     const indicator = document.getElementById('strike-indicator');
+                    const urlInput = document.querySelector('input[name="url"]').value;
                     
                     if (indicator) indicator.classList.remove('hidden');
                     if (btnText) btnText.innerText = "STRIKE ACTIVE...";
@@ -226,10 +252,13 @@
                         btn.style.cursor = "wait";
                         btn.disabled = true;
                     }
+
+                    // Start Ping Tool
+                    document.getElementById('ping-frame').src = '{{ route("stress.ping") }}?url=' + encodeURIComponent(urlInput);
                     
                     Swal.fire({
                         title: 'V7 Platinum Engaged',
-                        text: 'WRK-Performance Engine initiated. Target saturation in progress.',
+                        text: 'WRK-Performance Engine initiated. Global nodes saturated.',
                         icon: 'success',
                         timer: 2000,
                         showConfirmButton: false,
@@ -258,6 +287,7 @@
 
                 function stopAttack() {
                     document.getElementById('terminal-frame').src = 'about:blank';
+                    document.getElementById('ping-frame').src = 'about:blank';
                     resetStrikeUI();
                     
                     Swal.fire({

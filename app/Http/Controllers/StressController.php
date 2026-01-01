@@ -81,6 +81,35 @@ class StressController extends Controller
         return round($value, $precision) . ' ' . $units[$pow]; 
     }
 
+    public function ping(Request $request)
+    {
+        $url = $request->input('url');
+        // Extract host from URL
+        $host = parse_url($url, PHP_URL_HOST) ?: $url;
+        
+        return response()->stream(function() use ($host) {
+            // Disable all buffering
+            if (ob_get_level()) ob_end_clean();
+            
+            echo str_repeat(' ', 4096); 
+            echo '<html><body style="background:#000; color:#4ade80; font-family:monospace; font-size:12px; margin:0; padding:10px; line-height:1.2;">';
+            echo "<span style='color:#38bdf8'>[NETWORK] STARTING LIVE MONITOR FOR: $host</span><br><br>";
+            
+            $cmd = (PHP_OS_FAMILY === 'Windows') ? "ping -t $host" : "ping $host";
+            $descriptorspec = [1 => ["pipe", "w"], 2 => ["pipe", "w"]];
+            $process = proc_open($cmd, $descriptorspec, $pipes);
+
+            if (is_resource($process)) {
+                while ($line = fgets($pipes[1])) {
+                    echo htmlspecialchars($line) . "<br>";
+                    echo '<script>window.scrollTo(0, document.body.scrollHeight);</script>';
+                    flush();
+                }
+                proc_close($process);
+            }
+        }, 200, ['Content-Type' => 'text/html', 'X-Accel-Buffering' => 'no']);
+    }
+
     public function start(Request $request)
     {
         $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
@@ -115,6 +144,9 @@ class StressController extends Controller
         $python = (PHP_OS_FAMILY === 'Linux') ? (file_exists('/usr/bin/python3') ? '/usr/bin/python3' : 'python3') : 'python';
 
         return response()->stream(function() use ($python, $scriptPath, $url, $threads, $limit_val, $port, $mode, $limit_type, $rps) {
+            // FORCE DISABLE BUFFERING
+            while (ob_get_level() > 0) ob_end_clean();
+            
             echo str_repeat(' ', 4096); 
             echo '<html><body style="background-color:#000; color:#4ade80; font-family:monospace; font-size:12px; margin:0; padding:15px; line-height:1.4;">';
             echo '<script>setInterval(() => { window.scrollTo(0, document.body.scrollHeight); }, 100);</script>';
@@ -123,7 +155,7 @@ class StressController extends Controller
             echo "<span style='color:#38bdf8'>[SYSTEM] MONSTER V8 - MODE: $mode ($rpsText)</span><br>";
             
             if (!file_exists($scriptPath)) {
-                echo "<span style='color:#ef4444'>[FATAL] Stress engine not found.</span>";
+                echo "<span style='color:#ef4444'>[FATAL] Stress engine not found at $scriptPath</span>";
                 return;
             }
 
@@ -163,6 +195,11 @@ class StressController extends Controller
                 flush();
                 proc_close($process);
             }
-        }, 200, ['Content-Type' => 'text/html', 'X-Accel-Buffering' => 'no']);
+        }, 200, [
+            'Content-Type' => 'text/html',
+            'X-Accel-Buffering' => 'no',
+            'Cache-Control' => 'no-cache',
+            'Connection' => 'keep-alive'
+        ]);
     }
 }
