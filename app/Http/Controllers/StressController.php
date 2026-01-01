@@ -139,6 +139,9 @@ class StressController extends Controller
             // HTML STYLING WRAPPER
             echo '<html><body style="background-color:#0f172a; color:#4ade80; font-family:monospace; font-size:12px; margin:0; padding:10px;">';
             
+            // AUTO SCROLL SCRIPT
+            echo '<script>setInterval(() => { window.scrollTo(0, document.body.scrollHeight); }, 100);</script>';
+
             // STREAM INIT MESSAGE
             echo "<span style='color:cyan'>[SYSTEM] Initializing Engine...</span><br>";
             echo "<span style='color:cyan'>[SYSTEM] Using Python: $python</span><br>";

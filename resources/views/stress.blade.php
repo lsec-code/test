@@ -71,24 +71,30 @@
             </div>
 
             <!-- SERVER SPECS CARD -->
-            <!-- SERVER SPECS CARD (LIVE GRAPHS) -->
-            <div class="bg-slate-900 border border-slate-700 rounded-lg p-3 flex gap-6 shadow-xl items-center">
-                 <div class="w-32">
+            <!-- SERVER SPECS CARD -->
+            <div class="bg-slate-900 border border-slate-700 rounded-lg p-4 flex gap-10 shadow-xl items-center flex-1 max-w-full">
+                 <div class="flex-1 min-w-[180px]">
                     <span class="block text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-1">CPU LOAD</span>
                     <div id="cpu-sparkline"></div>
-                    <span id="cpu-text" class="block text-right text-xs text-sky-400 font-mono mt-1">0%</span>
+                    <div class="flex justify-between items-center mt-1">
+                        <span class="text-[10px] text-slate-500">Live Load</span>
+                        <span id="cpu-text" class="text-xs text-sky-400 font-mono">0%</span>
+                    </div>
                  </div>
-                 <div class="w-32 border-l border-slate-700 pl-4">
+                 <div class="flex-1 min-w-[180px] border-l border-slate-700 pl-6">
                     <span class="block text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-1">RAM USAGE</span>
                     <div id="ram-sparkline"></div>
-                    <span id="ram-text" class="block text-right text-xs text-yellow-400 font-mono mt-1">0%</span>
+                    <div class="flex justify-between items-center mt-1">
+                        <span class="text-[10px] text-slate-500">Memory Use</span>
+                        <span id="ram-text" class="text-xs text-yellow-400 font-mono">0%</span>
+                    </div>
                  </div>
-                 <div class="hidden md:block text-xs border-l border-slate-700 pl-4">
-                    <span class="block text-[10px] text-slate-500 uppercase tracking-wider font-bold">INFO</span>
-                    <div class="mt-1 space-y-1">
-                        <div class="flex justify-between w-24"><span class="text-slate-500">Model:</span> <span class="text-white">{{ Str::limit($specs['cpu'], 10) }}</span></div>
-                        <div class="flex justify-between w-24"><span class="text-slate-500">Cores:</span> <span class="text-green-400">{{ $specs['cores'] }}</span></div>
-                        <div class="flex justify-between w-24"><span class="text-slate-500">Disk:</span> <span class="text-purple-400">{{ $specs['disk_free'] }}</span></div>
+                 <div class="hidden lg:block border-l border-slate-700 pl-6 min-w-[250px]">
+                    <span class="block text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-2">SYSTEM SPECS</span>
+                    <div class="grid grid-cols-2 gap-x-6 gap-y-1 text-[11px]">
+                        <span class="text-slate-500">Model:</span> <span class="text-white font-medium">{{ $specs['cpu'] }}</span>
+                        <span class="text-slate-500">Capacity:</span> <span class="text-green-400">{{ $specs['cores'] }} Cores</span>
+                        <span class="text-slate-500">Storage:</span> <span class="text-purple-400">{{ $specs['disk_free'] }} Free</span>
                     </div>
                  </div>
             </div>
