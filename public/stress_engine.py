@@ -128,11 +128,19 @@ def main():
 
     # Live Monitor
     start_time = time.time()
+    last_bytes_check = 0
     
     while time.time() < end_time:
         time.sleep(1)
         elapsed = int(time.time() - start_time)
-        print(f"PROGRESS:{elapsed}:{duration}") # Hook for PHP
+        
+        # Calculate Speed
+        current_bytes = TOTAL_BYTES_SENT
+        bytes_delta = current_bytes - last_bytes_check
+        mbps = (bytes_delta * 8) / (1024 * 1024) # Bits / Meg
+        last_bytes_check = current_bytes
+        
+        print(f"PROGRESS:{elapsed}:{duration} | SPEED: {mbps:.2f} Mbps") # Hook for PHP
         sys.stdout.flush()
 
     print("-" * 40)
