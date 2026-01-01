@@ -263,7 +263,8 @@ class StressController extends Controller
                             }
                             
                             if (!$tcpUp) {
-                                echo "<script>if(window.parent.appendPingLog) window.parent.appendPingLog(".json_encode("[$timestamp] [DOWN] Target Unresponsive"), 'red-500');</script>";
+                                $errMsg = "[$timestamp] [DOWN] Target Unresponsive";
+                                echo "<script>if(window.parent.appendPingLog) window.parent.appendPingLog(".json_encode($errMsg).", 'red-500');</script>";
                             }
                         }
                     }
