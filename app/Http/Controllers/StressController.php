@@ -109,22 +109,39 @@ class StressController extends Controller
             }
 
             if (PHP_OS_FAMILY === 'Windows') {
-                // Loop-based ping for Windows to bypass pipe buffering issues
-                for ($i = 0; $i < 600; $i++) { // Max ~10 mins
-                    $out = [];
-                    exec("ping -n 1 $host", $out);
-                    foreach ($out as $line) {
-                        if (str_contains($line, 'Reply from') || str_contains($line, 'Request timed out') || str_contains($line, 'unreachable')) {
+                for ($i = 0; $i < 600; $i++) {
+                    $pingOut = "";
+                    $res = shell_exec("ping -n 1 $host");
+                    
+                    if ($res) {
+                        $lines = explode("\n", $res);
+                        foreach ($lines as $line) {
+                            $line = trim($line);
+                            if (empty($line) || str_contains($line, 'Pinging')) continue;
                             echo htmlspecialchars($line) . "<br>";
+                        }
+                    } else {
+                        // TCP FALLBACK (If ICMP is blocked)
+                        $start = microtime(true);
+                        $fp = @fsockopen($host, 443, $errno, $errstr, 1);
+                        if (!$fp) $fp = @fsockopen($host, 80, $errno, $errstr, 1);
+                        
+                        $lat = round((microtime(true) - $start) * 1000, 2);
+                        if ($fp) {
+                            echo "<span style='color:#10b981'>[TCP-OK] Connection to $host:443 established | Latency: {$lat}ms</span><br>";
+                            fclose($fp);
+                        } else {
+                            echo "<span style='color:#ef4444'>[TIMEOUT] $host is unresponsive (ICMP/TCP Blocked)</span><br>";
                         }
                     }
                     echo '<script>window.scrollTo(0, document.body.scrollHeight);</script>';
+                    if (ob_get_level() > 0) ob_flush();
                     flush();
                     if (connection_aborted()) break;
-                    sleep(1);
+                    usleep(1000000); 
                 }
             } else {
-                $cmd = "ping $host";
+                $cmd = "ping -i 1 $host";
                 $descriptorspec = [1 => ["pipe", "w"], 2 => ["pipe", "w"]];
                 $process = proc_open($cmd, $descriptorspec, $pipes);
 
