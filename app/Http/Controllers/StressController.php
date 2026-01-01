@@ -43,6 +43,28 @@ class StressController extends Controller
         return view('stress', compact('specs'));
     }
 
+    public function fetchProxies(Request $request)
+    {
+        $type = $request->query('type', 'http');
+        $url = "https://api.proxyscrape.com/v2/?request=displayproxies&protocol=$type&timeout=10000&country=all&ssl=all&anonymity=all";
+        
+        try {
+            $response = \Illuminate\Support\Facades\Http::get($url);
+            if ($response->successful()) {
+                $proxies = trim($response->body());
+                $count = count(explode("\n", $proxies));
+                return response()->json([
+                    'success' => true,
+                    'proxies' => $proxies,
+                    'count' => $count
+                ]);
+            }
+            throw new \Exception("Proxy source unreachable");
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
     public function stats()
     {
         $cpuLoad = rand(5, 10);
@@ -93,7 +115,9 @@ class StressController extends Controller
             'port' => 'required|integer|min:1|max:65535',
             'mode' => 'required|integer',
             'limit_type' => 'required|string|in:time,req',
-            'rps' => 'required|integer|min:0'
+            'rps' => 'required|integer|min:0',
+            'proxies' => 'nullable|string',
+            'proxy_type' => 'nullable|string|in:http,socks4,socks5'
         ]);
 
         if ($validator->fails()) {
@@ -112,20 +136,29 @@ class StressController extends Controller
         $mode = (int)$request->input('mode');
         $limit_type = $request->input('limit_type');
         $rps = (int)$request->input('rps');
+        $proxies = $request->input('proxies');
+        $proxy_type = $request->input('proxy_type', 'http');
+
+        $proxyFile = null;
+        if (!empty($proxies)) {
+            $proxyFile = storage_path('app/proxies_' . uniqid() . '.txt');
+            file_put_contents($proxyFile, $proxies);
+        }
 
         $host = parse_url($url, PHP_URL_HOST) ?? trim(str_replace(['http://', 'https://'], '', $url), '/');
 
         $scriptPath = public_path('stress_engine.py');
         $python = (PHP_OS_FAMILY === 'Linux') ? (file_exists('/usr/bin/python3') ? '/usr/bin/python3' : 'python3') : 'python';
 
-        return response()->stream(function() use ($python, $scriptPath, $url, $threads, $limit_val, $port, $mode, $limit_type, $rps, $host) {
+        return response()->stream(function() use ($python, $scriptPath, $url, $threads, $limit_val, $port, $mode, $limit_type, $rps, $host, $proxyFile, $proxy_type) {
             while (ob_get_level() > 0) ob_end_clean();
             ob_implicit_flush(true);
 
             echo str_repeat(' ', 4096);
             echo '<html><body style="background:#000; color:#4ade80; font-family:monospace; font-size:12px; margin:0; padding:10px; border:0;">';
             
-            $cmd = "$python -u \"$scriptPath\" \"$url\" $threads $limit_val $port $mode $limit_type $rps 2>&1";
+            $proxyArg = $proxyFile ? "--proxy-file \"$proxyFile\" --proxy-type \"$proxy_type\"" : "";
+            $cmd = "$python -u \"$scriptPath\" \"$url\" $threads $limit_val $port $mode $limit_type $rps $proxyArg 2>&1";
             $descriptorspec = [
                 0 => ["pipe", "r"],
                 1 => ["pipe", "w"],
@@ -204,6 +237,7 @@ class StressController extends Controller
                 </script>';
                 flush();
                 proc_close($process);
+                if ($proxyFile && file_exists($proxyFile)) @unlink($proxyFile);
             }
         }, 200, [
             'Content-Type' => 'text/html',

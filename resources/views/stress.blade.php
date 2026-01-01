@@ -186,6 +186,27 @@
                         </button>
                     </div>
 
+                    <!-- PROXY SECTION -->
+                    <div class="lg:col-span-12 mt-6 pt-6 border-t border-slate-800/50">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-network-wired text-amber-500"></i>
+                                <label class="text-[10px] font-bold uppercase text-slate-400 tracking-widest">Proxy Configuration (Optional)</label>
+                            </div>
+                            <div class="flex gap-2">
+                                <button type="button" onclick="fetchFreeProxies()" id="btn-fetch-proxy" class="text-[9px] bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 px-3 py-1.5 rounded-lg border border-amber-500/20 transition-all uppercase font-black">
+                                    <i class="fa-solid fa-cloud-download mr-1"></i> Get Free Proxies
+                                </button>
+                                <select name="proxy_type" class="bg-slate-900 border-none text-[9px] text-slate-400 uppercase font-bold rounded-lg px-2 py-1">
+                                    <option value="http">HTTP</option>
+                                    <option value="socks4">SOCKS4</option>
+                                    <option value="socks5">SOCKS5</option>
+                                </select>
+                            </div>
+                        </div>
+                        <textarea name="proxies" rows="3" class="w-full bg-slate-950/50 border-slate-800 text-slate-400 rounded-xl p-4 text-xs font-mono placeholder-slate-700 focus:border-amber-500/50 scrollbar-hide" placeholder="1.2.3.4:8080&#10;5.6.7.8:1080 (One per line)"></textarea>
+                    </div>
+
                     <script>
                         function updateLimitLabel() {
                             const type = document.getElementById('limit_type').value;
@@ -258,6 +279,48 @@
                 
                 // Bridge to iframe
                 window.appendPingLog = appendPingLog;
+
+                async function fetchFreeProxies() {
+                    const btn = document.getElementById('btn-fetch-proxy');
+                    const textarea = document.querySelector('textarea[name="proxies"]');
+                    const type = document.querySelector('select[name="proxy_type"]').value;
+                    
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Fetching...';
+                    
+                    try {
+                        const res = await fetch(`/proxies/fetch?type=${type}`);
+                        const data = await res.json();
+                        
+                        if (data.success) {
+                            textarea.value = data.proxies;
+                            Swal.fire({
+                                title: 'Proxies Loaded',
+                                text: `${data.count} free proxies added to your list.`,
+                                icon: 'success',
+                                toast: true,
+                                position: 'top-end',
+                                timer: 3000,
+                                showConfirmButton: false,
+                                background: '#1e293b',
+                                color: '#fff'
+                            });
+                        } else {
+                            throw new Error(data.message);
+                        }
+                    } catch (err) {
+                        Swal.fire({
+                            title: 'Fetch Failed',
+                            text: err.message || 'Could not connect to proxy node.',
+                            icon: 'error',
+                            background: '#0f172a',
+                            color: '#fff'
+                        });
+                    } finally {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa-solid fa-cloud-download mr-1"></i> Get Free Proxies';
+                    }
+                }
 
                 function startAttack() {
                     const btn = document.getElementById('btn-launch');
