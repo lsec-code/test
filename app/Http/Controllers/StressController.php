@@ -55,7 +55,8 @@ class StressController extends Controller
             echo str_repeat(' ', 1024);
             flush();
 
-            $cmd = "$python \"$scriptPath\" \"$url\" $threads $duration $port $mode 2>&1"; // Capture Error
+            // Force Unbuffered Output (-u)
+            $cmd = "$python -u \"$scriptPath\" \"$url\" $threads $duration $port $mode 2>&1"; // Capture Error
 
             $descriptorSpec = [
                 0 => ["pipe", "r"],
