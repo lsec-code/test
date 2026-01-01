@@ -166,7 +166,12 @@ def main():
         mbps = (bytes_delta * 8) / (1024 * 1024) # Bits / Meg
         last_bytes_check = current_bytes
         
-        print(f"PROGRESS:{elapsed}:{duration} | SPEED: {mbps:.2f} Mbps") # Hook for PHP
+        # Print Status with Errors
+        err_msg = ""
+        if TOTAL_ERRORS > 0:
+            err_msg = f" | ERRORS: {TOTAL_ERRORS} ({LAST_ERROR})"
+
+        print(f"PROGRESS:{elapsed}:{duration} | SPEED: {mbps:.2f} Mbps{err_msg}") 
         sys.stdout.flush()
 
     print("-" * 40)
