@@ -270,34 +270,40 @@
                         btn.disabled = true;
                     }
 
-                    // Reset Ping Terminal
-                    terminal.innerHTML = `<div class="text-sky-400 font-bold">[SESSION] LIVE CONTEXT ESTABLISHED FOR: ${urlInput}</div><div class="text-slate-500">[*] Initializing AJAX Diagnostic Probe...</div>`;
+                    // Clear and set session header
+                    terminal.innerHTML = `<div class="text-sky-400 font-bold border-b border-sky-400/20 pb-2 mb-2">[SESSION] LIVE CONTEXT ESTABLISHED: ${urlInput}</div>`;
                     
-                    // Start AJAX Polling for Ping
+                    // Start AJAX Polling
                     if (pingInterval) clearInterval(pingInterval);
                     
-                    // Initial delay to let the attack stream start
+                    // Wait 500ms then start
                     setTimeout(() => {
                         pingInterval = setInterval(() => {
-                            fetch(`{{ route("stress.ping-single") }}?url=${encodeURIComponent(urlInput)}&cache=${Date.now()}`)
+                            fetch(`{{ route("stress.ping-single") }}?url=${encodeURIComponent(urlInput)}&_v=${Date.now()}`)
                                 .then(res => {
-                                    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+                                    if(!res.ok) throw new Error(`SERVER_BUSY_${res.status}`);
                                     return res.json();
                                 })
                                 .then(data => {
                                     let color = 'emerald-400';
-                                    if (data.output.includes('[DOWN]') || data.output.toLowerCase().includes('timed out') || data.output.toLowerCase().includes('unreachable')) color = 'red-500';
-                                    if (data.output.includes('[TCP-PROBE]')) color = 'sky-400';
-                                    if (data.output !== "..." && data.output !== "Checking...") {
-                                        appendPingLog(data.output, color);
+                                    const out = data.output;
+                                    if (out.includes('[RTO]') || out.toLowerCase().includes('timed out') || out.toLowerCase().includes('unreachable')) color = 'red-500';
+                                    if (out.includes('[TCP-OK]')) color = 'sky-400';
+                                    
+                                    // Avoid duplicates if server returns same result
+                                    const lastLine = terminal.lastElementChild ? terminal.lastElementChild.innerText : '';
+                                    if (out !== lastLine) {
+                                        appendPingLog(out, color);
                                     }
                                 })
                                 .catch(err => {
-                                    // Silent fail for minor worker busy/concurrency issues
-                                    console.warn("Ping Poll Error:", err);
+                                    console.error("Monitor Error:", err);
+                                    // Only show error if it's persistent
+                                    const time = new Date().toLocaleTimeString();
+                                    appendPingLog(`[${time}] [!] Re-connecting to diagnostic node...`, 'amber-500');
                                 });
-                        }, 3000); // 3s interval to be gentle on PHP workers
-                    }, 1000);
+                        }, 2500); 
+                    }, 500);
                     
                     Swal.fire({
                         title: 'V7 Platinum Engaged',

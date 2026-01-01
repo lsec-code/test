@@ -83,9 +83,11 @@ class StressController extends Controller
 
     public function pingSingle(Request $request)
     {
-        if (session_id()) session_write_close();
+        @session_write_close(); // Force release early
         
         $url = $request->input('url');
+        if (!$url || $url === 'https://') return response()->json(['output' => 'Waiting for valid URL...']);
+
         $host = parse_url($url, PHP_URL_HOST);
         if (!$host) {
             preg_match('/^([^\/]+)/', str_replace(['http://', 'https://'], '', $url), $matches);
@@ -93,37 +95,36 @@ class StressController extends Controller
         }
         $host = trim($host, " /:?#");
 
-        if (empty($host)) return response()->json(['output' => 'Invalid Host']);
+        if (empty($host) || $host === 'https') return response()->json(['output' => 'Invalid Host']);
 
-        $output = "..."; 
+        $timestamp = date('H:i:s');
+        $output = "[$timestamp] Check pending..."; 
+
         if (PHP_OS_FAMILY === 'Windows') {
-            // Using -n 1 -w 1000 for a fast 1-second timeout
-            $res = shell_exec("ping -n 1 -w 1000 $host");
-            if ($res) {
-                // Find the line with Reply or Request (handles multiple languages)
-                $lines = explode("\n", $res);
-                foreach ($lines as $line) {
+            unset($out);
+            exec("ping -n 1 -w 1000 $host", $out, $status);
+            
+            if ($status === 0 && !empty($out)) {
+                foreach ($out as $line) {
                     $l = trim($line);
-                    if (str_contains($l, ': bytes=') || str_contains($l, 'ttl=') || str_contains($l, 'timed out') || str_contains($l, 'unreachable')) {
-                        $output = $l;
+                    if (str_contains($l, 'Reply') || str_contains($l, 'from') || str_contains($l, 'ttl=')) {
+                        $output = "[$timestamp] $l";
                         break;
                     }
                 }
             } else {
-                // TCP Probe
-                $start = microtime(true);
+                // Fast TCP Probe
                 $fp = @fsockopen($host, 80, $errno, $errstr, 1);
                 if ($fp) {
-                    $lat = round((microtime(true) - $start) * 1000, 2);
-                    $output = "[TCP-PROBE] $host: RESPONSE OK (Lat: {$lat}ms)";
+                    $output = "[$timestamp] [TCP-OK] $host is reachable (Port 80)";
                     fclose($fp);
                 } else {
-                    $output = "[DOWN] $host: No response";
+                    $output = "[$timestamp] [RTO] $host is not responding";
                 }
             }
         } else {
-            $res = shell_exec("ping -c 1 -W 1 $host");
-            $output = $res ?: "[DOWN] $host: ICMP blocked";
+            $res = shell_exec("ping -c 1 -W 1 $host 2>&1");
+            $output = $res ? "[$timestamp] " . trim($res) : "[$timestamp] [DOWN] ICMP Blocked";
         }
 
         return response()->json(['output' => $output]);
