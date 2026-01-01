@@ -64,45 +64,38 @@
 <body class="min-h-screen flex items-center justify-center p-4">
 
     <div class="w-full max-w-7xl card relative">
-        <div class="flex items-center justify-between mb-8 border-b border-slate-700 pb-4">
-            <div>
-                <h1 class="text-3xl font-bold text-white tracking-tight">MONSTER STRES</h1>
-                <p class="text-sm text-slate-400 mt-1">High Performance Load Testing Tool</p>
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-center mb-10 border-b border-slate-700 pb-6">
+            <div class="md:col-span-4">
+                <h1 class="text-4xl font-extrabold text-white tracking-tighter italic">MONSTER <span class="text-sky-500">STRES</span></h1>
+                <p class="text-xs text-slate-400 mt-1 uppercase tracking-widest">High Performance Engine V3.0</p>
             </div>
 
             <!-- SERVER SPECS CARD -->
-            <!-- SERVER SPECS CARD -->
-            <div class="bg-slate-900 border border-slate-700 rounded-lg p-4 flex gap-10 shadow-xl items-center flex-1 max-w-full">
-                 <div class="flex-1 min-w-[180px]">
-                    <span class="block text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-1">CPU LOAD</span>
+            <div class="md:col-span-8 bg-slate-900 border border-slate-700 rounded-xl p-4 flex gap-8 shadow-2xl items-center">
+                 <div class="flex-1">
+                    <span class="block text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-2">CPU LOAD</span>
                     <div id="cpu-sparkline"></div>
-                    <div class="flex justify-between items-center mt-1">
+                    <div class="flex justify-between items-center mt-2 px-1">
                         <span class="text-[10px] text-slate-500">Live Load</span>
                         <span id="cpu-text" class="text-xs text-sky-400 font-mono">0%</span>
                     </div>
                  </div>
-                 <div class="flex-1 min-w-[180px] border-l border-slate-700 pl-6">
-                    <span class="block text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-1">RAM USAGE</span>
+                 <div class="flex-1 border-l border-slate-800 pl-8">
+                    <span class="block text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-2">RAM USAGE</span>
                     <div id="ram-sparkline"></div>
-                    <div class="flex justify-between items-center mt-1">
-                        <span class="text-[10px] text-slate-500">Memory Use</span>
-                        <span id="ram-text" class="text-xs text-yellow-400 font-mono">0%</span>
+                    <div class="flex justify-between items-center mt-2 px-1">
+                        <span class="text-[10px] text-slate-500">Memory</span>
+                        <span id="ram-text" class="text-xs text-yellow-500 font-mono">0%</span>
                     </div>
                  </div>
-                 <div class="hidden lg:block border-l border-slate-700 pl-6 min-w-[250px]">
-                    <span class="block text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-2">SYSTEM SPECS</span>
-                    <div class="grid grid-cols-2 gap-x-6 gap-y-1 text-[11px]">
-                        <span class="text-slate-500">Model:</span> <span class="text-white font-medium">{{ $specs['cpu'] }}</span>
-                        <span class="text-slate-500">Capacity:</span> <span class="text-green-400">{{ $specs['cores'] }} Cores</span>
-                        <span class="text-slate-500">Storage:</span> <span class="text-purple-400">{{ $specs['disk_free'] }} Free</span>
+                 <div class="hidden xl:block border-l border-slate-800 pl-8 min-w-[300px]">
+                    <span class="block text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-2 text-green-500">HOST SPECS</span>
+                    <div class="space-y-2 text-[11px]">
+                        <div class="flex justify-between border-b border-slate-800 pb-1"><span class="text-slate-500">CPU:</span> <span class="text-white font-mono uppercase">{{ $specs['cpu'] }}</span></div>
+                        <div class="flex justify-between border-b border-slate-800 pb-1"><span class="text-slate-500">Capacity:</span> <span class="text-sky-300 font-mono">{{ $specs['cores'] }} CORES</span></div>
+                        <div class="flex justify-between"><span class="text-slate-500">SSD:</span> <span class="text-purple-400 font-mono">{{ $specs['disk_free'] }} FREE</span></div>
                     </div>
                  </div>
-            </div>
-            
-            <!-- Mobile Version Badge -->
-             <div class="flex items-center gap-2 md:hidden">
-                <span class="px-3 py-1 bg-slate-700 rounded-full text-xs font-semibold text-slate-300">V2.0</span>
-                <span class="px-3 py-1 bg-green-900 text-green-300 rounded-full text-xs font-semibold">Online</span>
             </div>
         </div>
 

