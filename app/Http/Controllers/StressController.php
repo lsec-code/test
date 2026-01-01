@@ -63,11 +63,23 @@ class StressController extends Controller
             if (file_exists("/proc/meminfo")) {
                 $memData = file_get_contents("/proc/meminfo");
                 preg_match('/MemTotal:\s+(\d+)/', $memData, $total);
+                
+                // Try MemAvailable (Modern)
                 preg_match('/MemAvailable:\s+(\d+)/', $memData, $avail);
-                if (isset($total[1]) && isset($avail[1])) {
+                
+                if (isset($avail[1])) {
+                    $availVal = (int)$avail[1];
+                } else {
+                    // Fallback: MemFree + Buffers + Cached
+                    preg_match('/MemFree:\s+(\d+)/', $memData, $free);
+                    preg_match('/Buffers:\s+(\d+)/', $memData, $buffers);
+                    preg_match('/^Cached:\s+(\d+)/m', $memData, $cached);
+                    $availVal = ((int)($free[1] ?? 0)) + ((int)($buffers[1] ?? 0)) + ((int)($cached[1] ?? 0));
+                }
+
+                if (isset($total[1]) && $availVal > 0) {
                     $totalMem = (int)$total[1];
-                    $availMem = (int)$avail[1];
-                    $usedMem = $totalMem - $availMem;
+                    $usedMem = $totalMem - $availVal;
                     $ramUsage = ($usedMem / $totalMem) * 100;
                 }
             }
@@ -117,7 +129,7 @@ class StressController extends Controller
             'threads' => 'required|integer|min:1|max:1000',
             'duration' => 'required|integer|min:5|max:300',
             'port' => 'required|integer|min:1|max:65535',
-            'mode' => 'required|integer|in:1,2,3,4',
+            'mode' => 'required|integer|in:1,2,3,4,5',
         ]);
 
         $url = $request->input('url');
