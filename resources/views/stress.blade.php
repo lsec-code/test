@@ -61,112 +61,125 @@
         }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4">
-
-    <div class="w-full max-w-7xl card relative">
-        <!-- SERVER SPECS SECTION -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
-            <!-- CPU CARD -->
-            <div class="bg-slate-900/50 border border-slate-700/50 rounded-2xl p-5 shadow-2xl backdrop-blur-sm">
-                <div class="flex justify-between items-start mb-4">
-                    <div>
-                <span class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Source Node - Processor Load</span>
-                        <h3 id="cpu-text" class="text-2xl font-black text-sky-400 font-mono">0%</h3>
-                    </div>
+    <div class="w-full max-w-[1400px] mx-auto">
+        <div class="card bg-slate-900 border border-slate-700/50 p-6 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+            <!-- HEADER SECTION -->
+            <div class="flex justify-between items-center mb-8 border-b border-slate-800 pb-6">
+                <div>
+                    <h1 class="text-4xl font-black text-white tracking-tighter flex items-center gap-3">
+                        <i class="fa-solid fa-ghost text-sky-500"></i> MONSTER STRES <span class="text-xs bg-sky-500/10 text-sky-500 px-2 py-0.5 rounded border border-sky-500/20">V6.2 GOLD</span>
+                    </h1>
+                    <p class="text-[10px] text-slate-500 uppercase tracking-[0.3em] font-bold mt-1">Multi-Core L7 Application Layer Stress Tester</p>
                 </div>
-                <div id="cpu-sparkline" class="w-full h-12"></div>
-                <div class="mt-4 pt-3 border-t border-slate-800 text-[11px]">
-                    <span class="text-slate-500">Model:</span>
-                    <span class="text-slate-300 font-mono block mt-1 overflow-hidden text-ellipsis whitespace-nowrap">{{ $specs['cpu'] }}</span>
-                </div>
-            </div>
-
-            <!-- RAM CARD -->
-            <div class="bg-slate-900/50 border border-slate-700/50 rounded-2xl p-5 shadow-2xl backdrop-blur-sm">
-                <div class="flex justify-between items-start mb-4">
-                    <div>
-                        <span class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Memory Usage</span>
-                        <h3 id="ram-text" class="text-2xl font-black text-yellow-500 font-mono">0%</h3>
-                    </div>
-                </div>
-                <div id="ram-sparkline" class="w-full h-12"></div>
-                <div class="mt-4 pt-3 border-t border-slate-800 text-[11px] grid grid-cols-2 gap-4">
-                    <div><span class="text-slate-500 block">Total Capacity:</span> <span class="text-white">{{ $specs['ram_total'] }}</span></div>
-                    <div><span class="text-slate-500 block">Available:</span> <span class="text-green-400">{{ $specs['ram_free'] }}</span></div>
+                <div id="strike-indicator" class="hidden animate-pulse flex items-center gap-2 bg-red-500/10 border border-red-500/20 px-4 py-2 rounded-full">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                    </span>
+                    <span class="text-red-500 font-black text-[10px] tracking-widest uppercase">Active Strike Protocol</span>
                 </div>
             </div>
 
-            <!-- SYSTEM STATUS -->
-            <div class="bg-slate-900/50 border border-slate-700/50 rounded-2xl p-5 shadow-2xl backdrop-blur-sm">
-                <div class="flex justify-between items-start mb-4">
-                    <div>
-                        <span class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Machine Capacity</span>
-                        <h3 class="text-2xl font-black text-green-500 font-mono">READY</h3>
+            <!-- SOURCE INFRASTRUCTURE GRID -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 mb-10">
+                <!-- CPU -->
+                <div class="lg:col-span-4 bg-slate-950/50 border border-slate-800 p-5 rounded-2xl">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Source Node Load</span>
+                        <span id="cpu-text" class="text-xl font-black text-sky-400 font-mono">0%</span>
                     </div>
-                    <span class="px-3 py-1 bg-green-900/30 text-green-400 border border-green-800/50 rounded-full text-[10px] font-bold">STABLE</span>
-                </div>
-                <div class="space-y-3 pt-2">
-                    <div class="flex justify-between text-[11px] border-b border-slate-800 pb-2">
-                        <span class="text-slate-500">Active Processes:</span>
-                        <span class="text-sky-300 font-bold font-mono">{{ $specs['cores'] }} CORES (SMP)</span>
-                    </div>
-                    <div class="flex justify-between text-[11px] border-b border-slate-800 pb-2">
-                        <span class="text-slate-500">Storage Health:</span>
-                        <span class="text-purple-400 font-bold font-mono">{{ $specs['disk_free'] }} FREE</span>
-                    </div>
-                        <span class="text-slate-500">Source Connectivity:</span>
-                        <span class="text-amber-500 font-bold font-mono">1Gbps Aggregated Port</span>
+                    <div id="cpu-sparkline" class="h-10"></div>
+                    <div class="mt-4 pt-3 border-t border-slate-900 flex justify-between items-center">
+                        <span class="text-[9px] text-slate-500 uppercase">Model</span>
+                        <span class="text-[10px] text-slate-400 font-mono truncate ml-4 max-w-[180px]">{{ $specs['cpu'] }}</span>
                     </div>
                 </div>
-                <div id="strike-indicator" class="hidden mt-4 pt-3 border-t border-slate-800 text-center animate-pulse">
-                    <span class="text-red-500 font-black text-[11px] tracking-widest uppercase"><i class="fa-solid fa-radiation mr-2"></i> ACTIVE STRIKE IN PROGRESS <i class="fa-solid fa-radiation ml-2"></i></span>
+
+                <!-- RAM -->
+                <div class="lg:col-span-4 bg-slate-950/50 border border-slate-800 p-5 rounded-2xl">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Memory Allocation</span>
+                        <span id="ram-text" class="text-xl font-black text-amber-500 font-mono">0%</span>
+                    </div>
+                    <div id="ram-sparkline" class="h-10"></div>
+                    <div class="mt-4 pt-3 border-t border-slate-900 grid grid-cols-2 gap-2 text-center">
+                        <div><p class="text-[8px] text-slate-500 uppercase">Capacity</p><p class="text-[10px] text-white font-mono">{{ $specs['ram_total'] }}</p></div>
+                        <div class="border-l border-slate-900"><p class="text-[8px] text-slate-500 uppercase">Available</p><p class="text-[10px] text-green-400 font-mono">{{ $specs['ram_free'] }}</p></div>
+                    </div>
                 </div>
+
+                <!-- NODE SPECS -->
+                <div class="lg:col-span-4 bg-slate-950/50 border border-slate-800 p-5 rounded-2xl">
+                    <span class="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-3 block">Infrastructure Specs</span>
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center text-[10px]">
+                            <span class="text-slate-500">Processors</span>
+                            <span class="text-sky-300 font-bold font-mono">{{ $specs['cores'] }} CORES (SMP)</span>
+                        </div>
+                        <div class="flex justify-between items-center text-[10px]">
+                            <span class="text-slate-500">Connectivity</span>
+                            <span class="text-amber-500 font-bold font-mono">1Gbps Port</span>
+                        </div>
+                        <div class="flex justify-between items-center text-[10px]">
+                            <span class="text-slate-500">System State</span>
+                            <span class="text-green-500 font-bold uppercase animate-pulse">Ready</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ATTACK CONFIGURATION -->
+            <form action="{{ route('stress.start') }}" method="POST" target="terminal-frame" onsubmit="startAttack()">
+                @csrf
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-8 bg-slate-950/30 p-6 rounded-2xl border border-slate-800/50">
+                    <div class="lg:col-span-6">
+                        <label class="block text-[10px] font-bold uppercase text-slate-500 mb-2 tracking-widest">Target URL / EndPoint</label>
+                        <input type="text" name="url" required class="w-full bg-slate-900 border-slate-800 text-white rounded-xl p-3.5 text-sm focus:ring-2 focus:ring-sky-500 transition-all font-mono" placeholder="https://target.com" value="https://">
+                    </div>
+                    <div class="lg:col-span-2">
+                        <label class="block text-[10px] font-bold uppercase text-slate-500 mb-2 tracking-widest">Port</label>
+                        <input type="number" name="port" required class="w-full bg-slate-900 border-slate-800 text-white rounded-xl p-3.5 text-sm font-mono" value="443">
+                    </div>
+                    <div class="lg:col-span-2">
+                        <label class="block text-[10px] font-bold uppercase text-slate-500 mb-2 tracking-widest">Threads</label>
+                        <input type="number" name="threads" required class="w-full bg-slate-900 border-slate-800 text-white rounded-xl p-3.5 text-sm font-mono" value="32">
+                    </div>
+                    <div class="lg:col-span-2">
+                        <label class="block text-[10px] font-bold uppercase text-slate-500 mb-2 tracking-widest">Sec</label>
+                        <input type="number" name="duration" required class="w-full bg-slate-900 border-slate-800 text-white rounded-xl p-3.5 text-sm font-mono" value="60">
+                    </div>
+                    <div class="lg:col-span-8">
+                        <label class="block text-[10px] font-bold uppercase text-slate-500 mb-2 tracking-widest">Attack Protocol Selection</label>
+                        <select name="mode" id="mode" class="w-full bg-slate-900 border-slate-800 text-white rounded-xl p-3.5 text-sm font-black tracking-tight focus:ring-2 focus:ring-sky-500 transition-all font-mono">
+                            <option value="1">L7-STD: Application Layer Flood (Standard)</option>
+                            <option value="2">L7-ADV: Human Identity Emulation (Bypass)</option>
+                            <option value="3">L7-DBX: Database & Search Exhaustion (Cache Bypass)</option>
+                            <option value="4">L7-KLR: Killer V6 Buffer Overflow (High Load)</option>
+                            <option value="5">L7-SLO: Connection Slots Exhaustion (Slowloris)</option>
+                        </select>
+                    </div>
+                    <div class="lg:col-span-4 flex items-end gap-3">
+                        <button type="submit" id="btn-launch" class="flex-1 bg-sky-600 hover:bg-sky-500 text-white font-black py-4 rounded-xl shadow-[0_0_20px_rgba(14,165,233,0.3)] transition-all flex items-center justify-center gap-2 uppercase tracking-tighter">
+                            <i class="fa-solid fa-bolt"></i> <span id="btn-text">Execute Strike</span>
+                        </button>
+                        <button type="button" onclick="confirmStop()" class="bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white px-6 py-4 rounded-xl transition-all">
+                            <i class="fa-solid fa-power-off"></i>
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <!-- TERMINAL SECTION -->
+            <div>
+                <div class="flex justify-between items-center mb-2 px-1">
+                    <label class="text-[10px] font-bold uppercase text-slate-500 tracking-widest flex items-center gap-2">
+                        <i class="fa-solid fa-terminal text-sky-500"></i> Realtime Strike Logs
+                    </label>
+                    <span class="text-[10px] text-slate-600 font-mono">Stream: Unbuffered HTTP 1.1</span>
+                </div>
+                <iframe name="terminal-frame" id="terminal-frame" class="w-full h-[400px] border border-slate-800 rounded-2xl shadow-2xl bg-black"></iframe>
             </div>
         </div>
-
-        <form action="{{ route('stress.start') }}" method="POST" target="terminal-frame" onsubmit="startAttack()" class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            @csrf
-            
-            <div class="col-span-3">
-                <label class="block text-xs font-semibold uppercase text-slate-400 mb-2">Target URL / IP</label>
-                <input type="text" name="url" required class="w-full p-3" placeholder="https://example.com" value="https://">
-            </div>
-
-             <div>
-                <label class="block text-xs font-semibold uppercase text-slate-400 mb-2">Port</label>
-                <input type="number" name="port" required class="w-full p-3" value="443" min="1" max="65535">
-            </div>
-
-            <div>
-                 <label class="block text-xs font-semibold uppercase text-slate-400 mb-2">Threads</label>
-                <input type="number" name="threads" required class="w-full p-3" value="32" min="1" max="1000">
-            </div>
-
-            <div>
-                 <label class="block text-xs font-semibold uppercase text-slate-400 mb-2">Duration (s)</label>
-                <input type="number" name="duration" required class="w-full p-3" value="60" min="5" max="300">
-            </div>
-
-            <div class="col-span-2">
-                 <label class="block text-xs font-semibold uppercase text-slate-400 mb-2">Attack Mode</label>
-                  <select name="mode" id="mode" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 font-mono text-xs">
-                    <option value="1">Application Layer Flood (L7 - Standard)</option>
-                    <option value="2">Human Identity Emulation (L7 - Advanced Bypass)</option>
-                    <option value="3">DB & Search Exhaustion (L7 - Cache Bypass)</option>
-                    <option value="4">Buffer & Memory Overflow (L7 - Killer V6)</option>
-                    <option value="5" selected>Connection Slots Exhaustion (L7 - Slowloris)</option>
-                </select>
-            </div>
-
-            <div class="col-span-4 flex items-end gap-4 mt-4">
-                <button type="submit" id="btn-launch" class="flex-1 p-3.5 text-lg font-bold rounded-lg btn-primary shadow-lg flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-rocket"></i> <span id="btn-text">LAUNCH TEST</span>
-                </button>
-                <button type="button" onclick="confirmStop()" class="w-1/4 p-3.5 text-lg font-bold rounded-lg btn-danger shadow-lg flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-stop"></i> ABORT
-                </button>
-            </div>
-        </form>
 
         <div class="mb-2 flex justify-between items-end">
             <label class="text-xs font-semibold uppercase text-slate-400">Terminal Output</label>
