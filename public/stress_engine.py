@@ -186,10 +186,10 @@ def main():
     print("[*] MISSION COMPLETE. SYSTEM COOLING DOWN.")
 
 def get_mode_name(mode):
-    if mode == '1': return "STANDARD STORM"
-    if mode == '2': return "CLOUDFLARE EVASION"
-    if mode == '3': return "CACHE BUSTER"
-    if mode == '4': return "TOTAL ANNIHILATION"
+    if mode == '1': return "BASIC HTTP REQUEST"
+    if mode == '2': return "BROWSER EMULATION (HTTP 403 BYPASS)"
+    if mode == '3': return "RANDOM PATTERNS (CACHE BYPASS)"
+    if mode == '4': return "FULL STRESS TEST (MIXED)"
     return "UNKNOWN"
 
 if __name__ == "__main__":

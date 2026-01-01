@@ -122,12 +122,12 @@
 
             <div class="col-span-2">
                  <label class="block text-xs font-semibold uppercase text-slate-400 mb-2">Attack Mode</label>
-                 <select name="mode" class="w-full p-3">
-                     <option value="1">Standard Storm (Linear Request)</option>
-                     <option value="2">Bypass Cloudflare (Headers Rotation)</option>
-                     <option value="3">Bypass Cache (Random Parameters)</option>
-                     <option value="4">Total Annihilation (Mixed)</option>
-                 </select>
+                 <select name="mode" id="mode" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500">
+                    <option value="1">Basic HTTP Request (Standard Test)</option>
+                    <option value="2">Browser Emulation (Use for 403 Forbidden)</option>
+                    <option value="3">Random URL Patterns (Bypass Cache)</option>
+                    <option value="4">Full Stress Test (Mixed Modes)</option>
+                </select>
             </div>
 
             <div class="col-span-4 flex items-end gap-4 mt-4">
