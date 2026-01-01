@@ -57,6 +57,12 @@ class StressController extends Controller
 
             $cmd = "$python \"$scriptPath\" \"$url\" $threads $duration $port $mode 2>&1"; // Capture Error
 
+            $descriptorSpec = [
+                0 => ["pipe", "r"],
+                1 => ["pipe", "w"],
+                2 => ["pipe", "w"]
+            ];
+
             $process = proc_open($cmd, $descriptorSpec, $pipes);
 
             if (is_resource($process)) {
