@@ -87,17 +87,36 @@ class StressController extends Controller
 
     public function start(Request $request)
     {
-        $request->validate([
-            'url' => 'required|string|min:12', // Min length to avoid https:// empty
+        // Manual validation to prevent recursion redirects
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+            'url' => 'required|string|min:10',
             'threads' => 'required|integer|min:1|max:1000',
-            'duration' => 'required|integer|min:5|max:300',
+            'duration' => 'required|integer|min:1|max:3600',
             'port' => 'required|integer|min:1|max:65535',
             'mode' => 'required|integer',
         ]);
 
+        if ($validator->fails()) {
+            return response()->stream(function() {
+                echo str_repeat(' ', 4096);
+                echo '<html><body style="background:#000; color:#ef4444; font-family:monospace; padding:20px;">';
+                echo "<h3>[VALIDATION ERROR]</h3>";
+                echo "<ul>";
+                // We'll just show the first error for simplicity
+                echo "<li>Check your inputs: URL must be valid and Duration min 1s.</li>";
+                echo "</ul>";
+                echo "</body></html>";
+            }, 200, ['Content-Type' => 'text/html']);
+        }
+
         $url = $request->input('url');
         if (trim($url) === "https://" || trim($url) === "http://") {
-             return response()->json(['error' => 'Please enter a valid target URL'], 422);
+             return response()->stream(function() {
+                echo str_repeat(' ', 4096);
+                echo '<html><body style="background:#000; color:#ef4444; font-family:monospace; padding:20px;">';
+                echo "<h3>[ERROR] Target URL is empty.</h3>";
+                echo "</body></html>";
+            }, 200, ['Content-Type' => 'text/html']);
         }
 
         $threads = (int)$request->input('threads');
@@ -158,17 +177,17 @@ class StressController extends Controller
                         break;
                     }
                 }
-                fclose($pipes[1]);
-                $exitCode = proc_close($process);
-                echo "<br><span style='color:#fbbf24'>[*] OPERATION TERMINATED. EXIT CODE: $exitCode</span>";
+                if (isset($pipes[0])) fclose($pipes[0]); 
+                if (isset($pipes[1])) fclose($pipes[1]);
                 
-                // AUTO RESET UI SCRIPT
+                // Reset UI Script (Pre-Close)
                 echo '<script>
+                    console.log("[LOG] Strike Loop Finished. Resetting UI...");
                     if(window.parent && window.parent.resetStrikeUI) {
                         window.parent.resetStrikeUI();
                         window.parent.Swal.fire({
-                            title: "Attack Finished",
-                            text: "Operational objectives met. Systems idle.",
+                            title: "Strike Completed",
+                            text: "Target saturation finished. All workers terminated.",
                             icon: "success",
                             timer: 3000,
                             background: "#0f172a",
@@ -176,6 +195,10 @@ class StressController extends Controller
                         });
                     }
                 </script>';
+                flush();
+
+                $exitCode = proc_close($process);
+                echo "<br><span style='color:#fbbf24'>[*] OPERATION TERMINATED. EXIT CODE: $exitCode</span>";
             } else {
                  echo "<span style='color:#ef4444'>[FATAL] Failed to start process! Check if Python is installed and in PATH.</span><br>";
             }
