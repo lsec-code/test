@@ -81,150 +81,11 @@ class StressController extends Controller
         return round($value, $precision) . ' ' . $units[$pow]; 
     }
 
-    public function pingSingle(Request $request)
-    {
-        @session_write_close(); // Force release early
-        
-        $url = $request->input('url');
-        if (!$url || $url === 'https://') return response()->json(['output' => 'Waiting for valid URL...']);
-
-        $host = parse_url($url, PHP_URL_HOST);
-        if (!$host) {
-            preg_match('/^([^\/]+)/', str_replace(['http://', 'https://'], '', $url), $matches);
-            $host = $matches[1] ?? $url;
-        }
-        $host = trim($host, " /:?#");
-
-        if (empty($host) || $host === 'https') return response()->json(['output' => 'Invalid Host']);
-
-        $timestamp = date('H:i:s');
-        $output = "[$timestamp] Check pending..."; 
-
-        if (PHP_OS_FAMILY === 'Windows') {
-            unset($out);
-            exec("ping -n 1 -w 1000 $host", $out, $status);
-            
-            if ($status === 0 && !empty($out)) {
-                foreach ($out as $line) {
-                    $l = trim($line);
-                    if (str_contains($l, 'Reply') || str_contains($l, 'from') || str_contains($l, 'ttl=')) {
-                        $output = "[$timestamp] $l";
-                        break;
-                    }
-                }
-            } else {
-                // Fast TCP Probe
-                $fp = @fsockopen($host, 80, $errno, $errstr, 1);
-                if ($fp) {
-                    $output = "[$timestamp] [TCP-OK] $host is reachable (Port 80)";
-                    fclose($fp);
-                } else {
-                    $output = "[$timestamp] [RTO] $host is not responding";
-                }
-            }
-        } else {
-            $res = shell_exec("ping -c 1 -W 1 $host 2>&1");
-            $output = $res ? "[$timestamp] " . trim($res) : "[$timestamp] [DOWN] ICMP Blocked";
-        }
-
-        return response()->json(['output' => $output]);
-    }
-
-    public function ping(Request $request)
-    {
-        // 0. Release session lock immediately to allow parallel execution
-        if (session_id()) session_write_close();
-
-        // 1. Force absolute zero buffering
-        if (function_exists('apache_setenv')) {
-            @apache_setenv('no-gzip', 1);
-        }
-        @ini_set('zlib.output_compression', 0);
-        @ini_set('implicit_flush', 1);
-        
-        $url = $request->input('url');
-        
-        // Robust host extraction
-        $host = parse_url($url, PHP_URL_HOST);
-        if (!$host) {
-            preg_match('/^([^\/]+)/', str_replace(['http://', 'https://'], '', $url), $matches);
-            $host = $matches[1] ?? $url;
-        }
-        $host = trim($host, " /:?#");
-
-        return response()->stream(function() use ($host) {
-            // Disable all output buffering
-            while (ob_get_level() > 0) ob_end_clean();
-            ob_implicit_flush(true);
-
-            // 4KB padding to bypass proxy buffers (Nginx/Apache)
-            echo str_repeat(' ', 4096); 
-            echo '<html><body style="background:#000; color:#10b981; font-family:monospace; font-size:12px; margin:0; padding:10px; border:0;">';
-            echo "<div style='color:#38bdf8'>[SESSION] LIVE CONTEXT ESTABLISHED FOR: ".htmlspecialchars($host)."</div>";
-            echo "<div style='color:#64748b'>[*] Initializing ICMP/TCP Diagnostic Probe...</div><br>";
-            flush();
-
-            if (empty($host) || strlen($host) < 3) {
-                echo "<span style='color:#ef4444'>[!] ERROR: Host identification failed.</span>";
-                return;
-            }
-
-            if (PHP_OS_FAMILY === 'Windows') {
-                for ($i = 0; $i < 600; $i++) {
-                    $pingSpec = [1 => ["pipe", "w"], 2 => ["pipe", "w"]];
-                    $hPing = proc_open("ping -n 1 -w 1000 $host", $pingSpec, $ppipes);
-                    
-                    if (is_resource($hPing)) {
-                        while ($pLine = fgets($ppipes[1])) {
-                            if (str_contains($pLine, 'Reply') || str_contains($pLine, 'Request') || str_contains($pLine, 'unreachable')) {
-                                echo "<span>" . htmlspecialchars(trim($pLine)) . "</span><br>";
-                            }
-                        }
-                        proc_close($hPing);
-                    } else {
-                        // TCP FALLBACK
-                        $start = microtime(true);
-                        $fp = @fsockopen($host, 80, $errno, $errstr, 1);
-                        if ($fp) {
-                            $lat = round((microtime(true) - $start) * 1000, 2);
-                            echo "<span style='color:#2dd4bf'>[TCP-PROBE] $host: RESPONSE OK (Lat: {$lat}ms)</span><br>";
-                            fclose($fp);
-                        } else {
-                            echo "<span style='color:#f87171'>[DOWN] $host: No response</span><br>";
-                        }
-                    }
-                    echo '<script>window.scrollTo(0, document.body.scrollHeight);</script>';
-                    flush();
-                    if (connection_aborted()) break;
-                    usleep(500000); 
-                }
-            } else {
-                $cmd = "ping -c 600 -i 1 $host 2>&1";
-                $ptr = popen($cmd, 'r');
-                while (!feof($ptr)) {
-                    $line = fgets($ptr);
-                    if ($line) {
-                        echo htmlspecialchars($line) . "<br>";
-                        echo '<script>window.scrollTo(0, document.body.scrollHeight);</script>';
-                        flush();
-                    }
-                    if (connection_aborted()) break;
-                }
-                pclose($ptr);
-            }
-            echo "</body></html>";
-        }, 200, [
-            'Content-Type' => 'text/html',
-            'X-Accel-Buffering' => 'no',
-            'Cache-Control' => 'no-cache',
-            'Connection' => 'keep-alive'
-        ]);
-    }
-
     public function start(Request $request)
     {
-        // Release session lock to allow parallel requests (like ping monitor)
-        if (session_id()) session_write_close();
+        @session_write_close(); 
+        set_time_limit(0);
+
         $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'url' => 'required|string|min:10',
             'threads' => 'required|integer|min:1|max:1000',
@@ -240,7 +101,6 @@ class StressController extends Controller
                 echo str_repeat(' ', 4096);
                 echo '<html><body style="background:#000; color:#ef4444; font-family:monospace; padding:20px;">';
                 echo "<h3>[VALIDATION ERROR]</h3>";
-                echo "<ul><li>Invalid Inputs. Check URL, Threads, RPS and Limit values.</li></ul>";
                 echo "</body></html>";
             }, 200, ['Content-Type' => 'text/html']);
         }
@@ -253,40 +113,77 @@ class StressController extends Controller
         $limit_type = $request->input('limit_type');
         $rps = (int)$request->input('rps');
 
+        $host = parse_url($url, PHP_URL_HOST) ?? trim(str_replace(['http://', 'https://'], '', $url), '/');
+
         $scriptPath = public_path('stress_engine.py');
         $python = (PHP_OS_FAMILY === 'Linux') ? (file_exists('/usr/bin/python3') ? '/usr/bin/python3' : 'python3') : 'python';
 
-        return response()->stream(function() use ($python, $scriptPath, $url, $threads, $limit_val, $port, $mode, $limit_type, $rps) {
-            // FORCE DISABLE BUFFERING
+        return response()->stream(function() use ($python, $scriptPath, $url, $threads, $limit_val, $port, $mode, $limit_type, $rps, $host) {
             while (ob_get_level() > 0) ob_end_clean();
-            
-            echo str_repeat(' ', 4096); 
-            echo '<html><body style="background-color:#000; color:#4ade80; font-family:monospace; font-size:12px; margin:0; padding:15px; line-height:1.4;">';
-            echo '<script>setInterval(() => { window.scrollTo(0, document.body.scrollHeight); }, 100);</script>';
-            
-            $rpsText = $rps > 0 ? "PACED ($rps RPS)" : "MAX-EFFICIENCY";
-            echo "<span style='color:#38bdf8'>[SYSTEM] MONSTER V8 - MODE: $mode ($rpsText)</span><br>";
-            
-            if (!file_exists($scriptPath)) {
-                echo "<span style='color:#ef4444'>[FATAL] Stress engine not found at $scriptPath</span>";
-                return;
-            }
+            ob_implicit_flush(true);
 
-            $cmd = "$python -u \"$scriptPath\" \"$url\" $threads $limit_val $port $mode $limit_type $rps 2>&1";
+            echo str_repeat(' ', 4096);
+            echo '<html><body style="background:#000; color:#4ade80; font-family:monospace; font-size:12px; margin:0; padding:10px; border:0;">';
             
+            $cmd = "$python -u \"$scriptPath\" \"$url\" $threads $limit_val $port $mode $limit_type $rps 2>&1";
             $descriptorspec = [
-                0 => array("pipe", "r"),
-                1 => array("pipe", "w"),
-                2 => array("pipe", "w")
+                0 => ["pipe", "r"],
+                1 => ["pipe", "w"],
+                2 => ["pipe", "w"]
             ];
 
             $process = proc_open($cmd, $descriptorspec, $pipes);
-
+            
             if (is_resource($process)) {
-                while ($line = fgets($pipes[1])) {
-                    $line = mb_convert_encoding($line, 'UTF-8', 'UTF-8');
-                    echo htmlspecialchars($line) . "<br>";
+                $lastPingTime = 0;
+                
+                while (!feof($pipes[1])) {
+                    $line = fgets($pipes[1]);
+                    if ($line) {
+                        // Consistently rebrand the engine output in real-time
+                        $line = str_replace('MONSTER V8', 'LINUXSEC GOLD', $line);
+                        $line = str_replace('PLATINUM', 'GOLD', $line);
+                        
+                        echo htmlspecialchars($line) . "<br>";
+                        echo '<script>window.scrollTo(0, document.body.scrollHeight);</script>';
+                    }
+
+                    // Integrated Ping logic (runs every 3 seconds)
+                    if (time() - $lastPingTime >= 3) {
+                        $lastPingTime = time();
+                        $timestamp = date('H:i:s');
+                        
+                        if (PHP_OS_FAMILY === 'Windows') {
+                            exec("ping -n 1 -w 1000 $host", $out, $status);
+                            if ($status === 0 && !empty($out)) {
+                                foreach ($out as $l) {
+                                    if (str_contains($l, 'Reply') || str_contains($l, 'from') || str_contains($l, 'ttl=')) {
+                                        $pmsg = "[$timestamp] " . trim($l);
+                                        echo "<script>if(window.parent.appendPingLog) window.parent.appendPingLog(".json_encode($pmsg).", 'emerald-400');</script>";
+                                        break;
+                                    }
+                                }
+                            } else {
+                                $fp = @fsockopen($host, 80, $errno, $errstr, 1);
+                                if ($fp) {
+                                    echo "<script>if(window.parent.appendPingLog) window.parent.appendPingLog(".json_encode("[$timestamp] [TCP-OK] $host is UP").", 'sky-400');</script>";
+                                    fclose($fp);
+                                } else {
+                                    echo "<script>if(window.parent.appendPingLog) window.parent.appendPingLog(".json_encode("[$timestamp] [RTO] Target Unresponsive").", 'red-500');</script>";
+                                }
+                            }
+                            unset($out);
+                        } else { // Linux
+                            $res = shell_exec("ping -c 1 -W 1 $host 2>&1");
+                            $pmsg = $res ? "[$timestamp] " . trim($res) : "[$timestamp] [DOWN] ICMP Blocked or Host Unreachable";
+                            $color = str_contains($pmsg, 'time=') ? 'emerald-400' : (str_contains($pmsg, 'unreachable') || str_contains($pmsg, 'DOWN') ? 'red-500' : 'yellow-400');
+                            echo "<script>if(window.parent.appendPingLog) window.parent.appendPingLog(".json_encode($pmsg).", '$color');</script>";
+                        }
+                    }
+
                     flush();
+                    if (connection_aborted()) break;
+                    usleep(10000); // 10ms CPU sleep
                 }
                 
                 if (isset($pipes[0])) fclose($pipes[0]); 

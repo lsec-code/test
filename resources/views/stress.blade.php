@@ -244,16 +244,18 @@
             </style>
 
             <script>
-                let pingInterval = null;
-
                 function appendPingLog(msg, color = 'emerald-400') {
                     const terminal = document.getElementById('ping-terminal');
+                    if(!terminal) return;
                     const div = document.createElement('div');
                     div.className = `text-${color}`;
                     div.innerText = msg;
                     terminal.appendChild(div);
                     terminal.scrollTop = terminal.scrollHeight;
                 }
+                
+                // Bridge to iframe
+                window.appendPingLog = appendPingLog;
 
                 function startAttack() {
                     const btn = document.getElementById('btn-launch');
@@ -270,44 +272,16 @@
                         btn.disabled = true;
                     }
 
-                    // Clear and set session header
-                    terminal.innerHTML = `<div class="text-sky-400 font-bold border-b border-sky-400/20 pb-2 mb-2">[SESSION] LIVE CONTEXT ESTABLISHED: ${urlInput}</div>`;
+                    // Reset Ping Terminal
+                    terminal.innerHTML = `<div class="text-sky-400 font-bold border-b border-sky-400/20 pb-2 mb-2 uppercase tracking-tighter">
+                        <i class="fa-solid fa-satellite-dish mr-2"></i> [BRIDGE] LIVE CONTEXT SYNC: ${urlInput}
+                    </div>`;
                     
-                    // Start AJAX Polling
-                    if (pingInterval) clearInterval(pingInterval);
-                    
-                    // Wait 500ms then start
-                    setTimeout(() => {
-                        pingInterval = setInterval(() => {
-                            fetch(`{{ route("stress.ping-single") }}?url=${encodeURIComponent(urlInput)}&_v=${Date.now()}`)
-                                .then(res => {
-                                    if(!res.ok) throw new Error(`SERVER_BUSY_${res.status}`);
-                                    return res.json();
-                                })
-                                .then(data => {
-                                    let color = 'emerald-400';
-                                    const out = data.output;
-                                    if (out.includes('[RTO]') || out.toLowerCase().includes('timed out') || out.toLowerCase().includes('unreachable')) color = 'red-500';
-                                    if (out.includes('[TCP-OK]')) color = 'sky-400';
-                                    
-                                    // Avoid duplicates if server returns same result
-                                    const lastLine = terminal.lastElementChild ? terminal.lastElementChild.innerText : '';
-                                    if (out !== lastLine) {
-                                        appendPingLog(out, color);
-                                    }
-                                })
-                                .catch(err => {
-                                    console.error("Monitor Error:", err);
-                                    // Only show error if it's persistent
-                                    const time = new Date().toLocaleTimeString();
-                                    appendPingLog(`[${time}] [!] Re-connecting to diagnostic node...`, 'amber-500');
-                                });
-                        }, 2500); 
-                    }, 500);
+                    appendPingLog("[*] LinuxSec Gold Unified Probe Engaged...", 'slate-500');
                     
                     Swal.fire({
-                        title: 'V7 Platinum Engaged',
-                        text: 'WRK-Performance Engine initiated. Global nodes saturated.',
+                        title: 'LinuxSec Gold Engaged',
+                        text: 'Unified WRK-Performance Stream initiated.',
                         icon: 'success',
                         timer: 2000,
                         showConfirmButton: false,
@@ -319,7 +293,7 @@
                 function confirmStop() {
                     Swal.fire({
                         title: 'Abort Strike?',
-                        text: "This will terminate all V7 processes immediately!",
+                        text: "This will terminate all V7 Gold processes immediately!",
                         icon: 'warning',
                         showCancelButton: true,
                         confirmButtonColor: '#ef4444',
@@ -336,13 +310,12 @@
 
                 function stopAttack() {
                     document.getElementById('terminal-frame').src = 'about:blank';
-                    if (pingInterval) clearInterval(pingInterval);
                     appendPingLog("[*] Monitoring terminated.", 'slate-500');
                     resetStrikeUI();
                     
                     Swal.fire({
                         title: 'Strike Aborted',
-                        text: 'V7 protocols terminated.',
+                        text: 'LinuxSec Gold protocols terminated.',
                         icon: 'info',
                         timer: 1500,
                         showConfirmButton: false,
