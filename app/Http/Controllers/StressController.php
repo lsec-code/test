@@ -218,61 +218,36 @@ class StressController extends Controller
                         echo '<script>window.scrollTo(0, document.body.scrollHeight);</script>';
                     }
 
-                    // Integrated Hybrid Monitoring (runs every 3 seconds)
+                    // Integrated Ping logic (runs every 3 seconds)
                     if (time() - $lastPingTime >= 3) {
                         $lastPingTime = time();
                         $timestamp = date('H:i:s');
-                        $pingSuccess = false;
                         
                         if (PHP_OS_FAMILY === 'Windows') {
                             exec("ping -n 1 -w 1000 $host", $out, $status);
                             if ($status === 0 && !empty($out)) {
                                 foreach ($out as $l) {
-                                    if (str_contains($l, 'Reply') || str_contains($l, 'from')) {
+                                    if (str_contains($l, 'Reply') || str_contains($l, 'from') || str_contains($l, 'ttl=')) {
                                         $pmsg = "[$timestamp] " . trim($l);
                                         echo "<script>if(window.parent.appendPingLog) window.parent.appendPingLog(".json_encode($pmsg).", 'emerald-400');</script>";
-                                        $pingSuccess = true;
                                         break;
                                     }
+                                }
+                            } else {
+                                $fp = @fsockopen($host, 80, $errno, $errstr, 1);
+                                if ($fp) {
+                                    echo "<script>if(window.parent.appendPingLog) window.parent.appendPingLog(".json_encode("[$timestamp] [TCP-OK] $host is UP").", 'sky-400');</script>";
+                                    fclose($fp);
+                                } else {
+                                    echo "<script>if(window.parent.appendPingLog) window.parent.appendPingLog(".json_encode("[$timestamp] [RTO] Target Unresponsive").", 'red-500');</script>";
                                 }
                             }
                             unset($out);
                         } else { // Linux
                             $res = shell_exec("ping -c 1 -W 1 $host 2>&1");
-                            if ($res && str_contains($res, 'time=')) {
-                                $lines = explode("\n", $res);
-                                $pmsg = "[$timestamp] " . trim($lines[1] ?? $lines[0]);
-                                echo "<script>if(window.parent.appendPingLog) window.parent.appendPingLog(".json_encode($pmsg).", 'emerald-400');</script>";
-                                $pingSuccess = true;
-                            }
-                        }
-
-                        // L7 HTTP Accuracy Fallback (The ultimate check for Cloudflare/WAF)
-                        if (!$pingSuccess) {
-                            $checkUrl = (str_starts_with($url, 'http')) ? $url : "https://$host";
-                            $ch = curl_init($checkUrl);
-                            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-                            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-                            curl_setopt($ch, CURLOPT_TIMEOUT, 3);
-                            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-                            curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) LinuxSec/1.0');
-                            
-                            $response = curl_exec($ch);
-                            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                            $error = curl_error($ch);
-                            curl_close($ch);
-
-                            if ($httpCode >= 200 && $httpCode < 500) {
-                                $pmsg = "[$timestamp] [UP] HTTP $httpCode Response (Active)";
-                                echo "<script>if(window.parent.appendPingLog) window.parent.appendPingLog(".json_encode($pmsg).", 'sky-400');</script>";
-                            } elseif ($httpCode >= 500) {
-                                $pmsg = "[$timestamp] [DOWN] HTTP $httpCode (Server Failure)";
-                                echo "<script>if(window.parent.appendPingLog) window.parent.appendPingLog(".json_encode($pmsg).", 'red-500');</script>";
-                            } else {
-                                $pmsg = "[$timestamp] [DOWN] Connection Timed Out / Refused";
-                                echo "<script>if(window.parent.appendPingLog) window.parent.appendPingLog(".json_encode($pmsg).", 'red-600');</script>";
-                            }
+                            $pmsg = $res ? "[$timestamp] " . trim($res) : "[$timestamp] [DOWN] ICMP Blocked or Host Unreachable";
+                            $color = str_contains($pmsg, 'time=') ? 'emerald-400' : (str_contains($pmsg, 'unreachable') || str_contains($pmsg, 'DOWN') ? 'red-500' : 'yellow-400');
+                            echo "<script>if(window.parent.appendPingLog) window.parent.appendPingLog(".json_encode($pmsg).", '$color');</script>";
                         }
                     }
 
