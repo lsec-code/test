@@ -85,21 +85,21 @@
                             [ Layer - 4 Protocol ]
                         </h3>
                         <div class="flex flex-wrap gap-2">
-                            <span class="method-badge">.udp</span>
-                            <span class="method-badge">.tcp</span>
-                            <span class="method-badge">.nfo-killer</span>
-                            <span class="method-badge">.udpbypass</span>
-                            <span class="method-badge">.std</span>
-                            <span class="method-badge">.home</span>
-                            <span class="method-badge">.destroy</span>
-                            <span class="method-badge">.god</span>
-                            <span class="method-badge">.stdv2</span>
-                            <span class="method-badge">.flux</span>
-                            <span class="method-badge">.ovh-amp</span>
-                            <span class="method-badge">.minecraft</span>
-                            <span class="method-badge">.samp</span>
-                            <span class="method-badge">.ldap</span>
-                            <span class="method-badge bg-red-500/10 text-red-500 border-red-500/20">.MAX (100Gbps)</span>
+                            <a href="{{ route('stress.index', ['mode' => '.udp']) }}" class="method-badge hover:bg-sky-500 hover:text-white transition-all">.udp</a>
+                            <a href="{{ route('stress.index', ['mode' => '.tcp']) }}" class="method-badge hover:bg-sky-500 hover:text-white transition-all">.tcp</a>
+                            <a href="{{ route('stress.index', ['mode' => '.nfo-killer']) }}" class="method-badge hover:bg-sky-500 hover:text-white transition-all">.nfo-killer</a>
+                            <a href="{{ route('stress.index', ['mode' => '.udpbypass']) }}" class="method-badge hover:bg-sky-500 hover:text-white transition-all">.udpbypass</a>
+                            <a href="{{ route('stress.index', ['mode' => '.std']) }}" class="method-badge hover:bg-sky-500 hover:text-white transition-all">.std</a>
+                            <a href="{{ route('stress.index', ['mode' => '.home']) }}" class="method-badge hover:bg-sky-500 hover:text-white transition-all">.home</a>
+                            <a href="{{ route('stress.index', ['mode' => '.destroy']) }}" class="method-badge hover:bg-sky-500 hover:text-white transition-all">.destroy</a>
+                            <a href="{{ route('stress.index', ['mode' => '.god']) }}" class="method-badge hover:bg-sky-500 hover:text-white transition-all">.god</a>
+                            <a href="{{ route('stress.index', ['mode' => '.stdv2']) }}" class="method-badge hover:bg-sky-500 hover:text-white transition-all">.stdv2</a>
+                            <a href="{{ route('stress.index', ['mode' => '.flux']) }}" class="method-badge hover:bg-sky-500 hover:text-white transition-all">.flux</a>
+                            <a href="{{ route('stress.index', ['mode' => '.ovh-amp']) }}" class="method-badge hover:bg-sky-500 hover:text-white transition-all">.ovh-amp</a>
+                            <a href="{{ route('stress.index', ['mode' => '.minecraft']) }}" class="method-badge hover:bg-sky-500 hover:text-white transition-all">.minecraft</a>
+                            <a href="{{ route('stress.index', ['mode' => '.samp']) }}" class="method-badge hover:bg-sky-500 hover:text-white transition-all">.samp</a>
+                            <a href="{{ route('stress.index', ['mode' => '.ldap']) }}" class="method-badge hover:bg-sky-500 hover:text-white transition-all">.ldap</a>
+                            <a href="{{ route('stress.index', ['mode' => '.Max']) }}" class="method-badge bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500 hover:text-white transition-all">.MAX (100Gbps)</a>
                         </div>
                     </div>
 
@@ -109,18 +109,18 @@
                             [ Layer - 7 Protocol ]
                         </h3>
                         <div class="flex flex-wrap gap-2">
-                            <span class="method-badge">.http-raw</span>
-                            <span class="method-badge">.http-socket</span>
-                            <span class="method-badge">.httpflood</span>
-                            <span class="method-badge">.cf-bypass</span>
-                            <span class="method-badge">.uambypass</span>
-                            <span class="method-badge">.hyper</span>
-                            <span class="method-badge">.cf-pro</span>
-                            <span class="method-badge">.crash</span>
-                            <span class="method-badge">.sky</span>
-                            <span class="method-badge">.wolf-panel</span>
-                            <span class="method-badge">.dann</span>
-                            <span class="method-badge bg-amber-500/10 text-amber-500 border-amber-500/20">.CFSTRONG</span>
+                            <a href="{{ route('stress.index', ['mode' => '.http-raw']) }}" class="method-badge hover:bg-sky-500 hover:text-white transition-all">.http-raw</a>
+                            <a href="{{ route('stress.index', ['mode' => '.http-socket']) }}" class="method-badge hover:bg-sky-500 hover:text-white transition-all">.http-socket</a>
+                            <a href="{{ route('stress.index', ['mode' => '.httpflood']) }}" class="method-badge hover:bg-sky-500 hover:text-white transition-all">.httpflood</a>
+                            <a href="{{ route('stress.index', ['mode' => '.cf-bypass']) }}" class="method-badge hover:bg-sky-500 hover:text-white transition-all">.cf-bypass</a>
+                            <a href="{{ route('stress.index', ['mode' => '.uambypass']) }}" class="method-badge hover:bg-sky-500 hover:text-white transition-all">.uambypass</a>
+                            <a href="{{ route('stress.index', ['mode' => '.hyper']) }}" class="method-badge hover:bg-sky-500 hover:text-white transition-all">.hyper</a>
+                            <a href="{{ route('stress.index', ['mode' => '.cf-pro']) }}" class="method-badge hover:bg-sky-500 hover:text-white transition-all">.cf-pro</a>
+                            <a href="{{ route('stress.index', ['mode' => '.crash']) }}" class="method-badge hover:bg-sky-500 hover:text-white transition-all">.crash</a>
+                            <a href="{{ route('stress.index', ['mode' => '.sky']) }}" class="method-badge hover:bg-sky-500 hover:text-white transition-all">.sky</a>
+                            <a href="{{ route('stress.index', ['mode' => '.wolf-panel']) }}" class="method-badge hover:bg-sky-500 hover:text-white transition-all">.wolf-panel</a>
+                            <a href="{{ route('stress.index', ['mode' => '.Dann']) }}" class="method-badge hover:bg-sky-500 hover:text-white transition-all">.Dann</a>
+                            <a href="{{ route('stress.index', ['mode' => '.CFSTRONG']) }}" class="method-badge bg-amber-500/10 text-amber-500 border-amber-500/20 hover:bg-amber-500 hover:text-white transition-all">.CFSTRONG</a>
                         </div>
                     </div>
                 </div>
@@ -153,42 +153,42 @@
                 </h2>
                 
                 <div class="space-y-1">
-                    <div class="group flex items-center justify-between p-3 rounded-xl hover:bg-sky-500/5 transition-all border border-transparent hover:border-sky-500/20 cursor-pointer">
+                    <a href="{{ route('sqli.index', ['mode' => 'Single Site Injection']) }}" class="group flex items-center justify-between p-3 rounded-xl hover:bg-sky-500/5 transition-all border border-transparent hover:border-sky-500/20 cursor-pointer">
                         <span class="text-xs text-slate-400 group-hover:text-white transition-colors">1. Single Site Injection</span>
                         <i class="fa-solid fa-chevron-right text-[10px] text-slate-600 group-hover:text-sky-500"></i>
-                    </div>
-                    <div class="flex items-center justify-between p-3 rounded-xl hover:bg-sky-500/5 transition-all border border-transparent hover:border-sky-500/20 cursor-pointer">
+                    </a>
+                    <a href="{{ route('sqli.index', ['mode' => 'Mass Exploit SQLi']) }}" class="group flex items-center justify-between p-3 rounded-xl hover:bg-sky-500/5 transition-all border border-transparent hover:border-sky-500/20 cursor-pointer">
                         <span class="text-xs text-slate-400">2. Mass Exploit SQLi</span>
                         <i class="fa-solid fa-chevron-right text-[10px] text-slate-600"></i>
-                    </div>
-                    <div class="flex items-center justify-between p-3 rounded-xl hover:bg-sky-500/5 transition-all border border-transparent hover:border-sky-500/20 cursor-pointer">
+                    </a>
+                    <a href="{{ route('sqli.index', ['mode' => 'Auto Dorking + Exploit']) }}" class="group flex items-center justify-between p-3 rounded-xl hover:bg-sky-500/5 transition-all border border-transparent hover:border-sky-500/20 cursor-pointer">
                         <span class="text-xs text-slate-400">3. Auto Dorking + Exploit</span>
                         <i class="fa-solid fa-chevron-right text-[10px] text-slate-600"></i>
-                    </div>
-                    <div class="flex items-center justify-between p-3 rounded-xl hover:bg-sky-500/5 transition-all border border-transparent hover:border-sky-500/20 cursor-pointer text-sky-400 font-bold">
+                    </a>
+                    <a href="{{ route('sqli.index', ['mode' => 'Web Crawler + Inject']) }}" class="group flex items-center justify-between p-3 rounded-xl hover:bg-sky-500/5 transition-all border border-transparent hover:border-sky-500/20 cursor-pointer text-sky-400 font-bold">
                         <span class="text-xs">7. Web Crawler + Inject</span>
                         <i class="fa-solid fa-circle-play text-[10px]"></i>
-                    </div>
-                    <div class="flex items-center justify-between p-3 rounded-xl hover:bg-sky-500/5 transition-all border border-transparent hover:border-sky-500/20 cursor-pointer">
+                    </a>
+                    <a href="{{ route('sqli.index', ['mode' => 'Mail Pass Dumper']) }}" class="group flex items-center justify-between p-3 rounded-xl hover:bg-sky-500/5 transition-all border border-transparent hover:border-sky-500/20 cursor-pointer">
                         <span class="text-xs text-slate-400">9. Mail Pass Dumper</span>
                         <i class="fa-solid fa-chevron-right text-[10px] text-slate-600"></i>
-                    </div>
-                    <div class="flex items-center justify-between p-3 rounded-xl hover:bg-sky-500/5 transition-all border border-transparent hover:border-sky-500/20 cursor-pointer">
+                    </a>
+                    <a href="{{ route('sqli.index', ['mode' => 'Dork Generator']) }}" class="group flex items-center justify-between p-3 rounded-xl hover:bg-sky-500/5 transition-all border border-transparent hover:border-sky-500/20 cursor-pointer">
                         <span class="text-xs text-slate-400">11. Dork Generator</span>
                         <i class="fa-solid fa-chevron-right text-[10px] text-slate-600"></i>
-                    </div>
-                    <div class="flex items-center justify-between p-3 rounded-xl hover:bg-sky-500/5 transition-all border border-transparent hover:border-sky-500/20 cursor-pointer">
+                    </a>
+                    <a href="{{ route('sqli.index', ['mode' => 'PSQLI Final Mod Scan']) }}" class="group flex items-center justify-between p-3 rounded-xl hover:bg-sky-500/5 transition-all border border-transparent hover:border-sky-500/20 cursor-pointer">
                         <span class="text-xs text-slate-400">13. PSQLI Final Mod Scan</span>
                         <i class="fa-solid fa-chevron-right text-[10px] text-slate-600"></i>
-                    </div>
-                    <div class="flex items-center justify-between p-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 cursor-pointer">
+                    </a>
+                    <a href="{{ route('sqli.index', ['mode' => 'Auto Upload Shell']) }}" class="group flex items-center justify-between p-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 cursor-pointer">
                         <span class="text-xs text-emerald-400 font-bold">17. Auto Upload Shell</span>
                         <i class="fa-solid fa-fire text-[10px] text-emerald-500"></i>
-                    </div>
-                    <div class="flex items-center justify-between p-3 rounded-xl hover:bg-sky-500/5 transition-all border border-transparent hover:border-sky-500/20 cursor-pointer">
+                    </a>
+                    <a href="{{ route('sqli.index', ['mode' => 'Auto Deface JSO']) }}" class="group flex items-center justify-between p-3 rounded-xl hover:bg-sky-500/5 transition-all border border-transparent hover:border-sky-500/20 cursor-pointer">
                         <span class="text-xs text-slate-400">19. Auto Deface JSO</span>
                         <i class="fa-solid fa-chevron-right text-[10px] text-slate-600"></i>
-                    </div>
+                    </a>
                 </div>
 
                 <div class="mt-8 p-4 rounded-2xl bg-black/40 border border-slate-800">

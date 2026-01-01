@@ -167,11 +167,25 @@
                     <div class="lg:col-span-5">
                         <label class="block text-[10px] font-bold uppercase text-slate-500 mb-2 tracking-widest">Attack Protocol Selection</label>
                         <select name="mode" id="mode" class="w-full bg-slate-900 border-slate-800 text-white rounded-xl p-3.5 text-sm font-black tracking-tight font-mono">
-                            <option value="1">L7-STD: Application Layer Flood (Standard)</option>
-                            <option value="2">L7-ADV: Human Identity Emulation (Bypass)</option>
-                            <option value="3">L7-DBX: Database & Search Exhaustion (Cache Bypass)</option>
-                            <option value="4">L7-KLR: Killer V7 WRK-Mode (Max Efficacy)</option>
-                            <option value="5">L7-SLO: Connection Slots Exhaustion (Slowloris)</option>
+                            <optgroup label="[ LAYER 7 - WEBSITES ]">
+                                <option value=".http-raw" @if(request('mode') == '.http-raw') selected @endif>.http-raw (Standard Flood)</option>
+                                <option value=".http-socket" @if(request('mode') == '.http-socket') selected @endif>.http-socket (Socket Exhaustion)</option>
+                                <option value=".cf-bypass" @if(request('mode') == '.cf-bypass') selected @endif>.cf-bypass (Cloudflare Bypass)</option>
+                                <option value=".uambypass" @if(request('mode') == '.uambypass') selected @endif>.uambypass (UAM Bypass)</option>
+                                <option value=".hyper" @if(request('mode') == '.hyper') selected @endif>.hyper (Hyper Flow)</option>
+                                <option value=".cf-pro" @if(request('mode') == '.cf-pro') selected @endif>.cf-pro (CF Pro Bypass)</option>
+                                <option value=".crash" @if(request('mode') == '.crash') selected @endif>.crash (System Overload)</option>
+                                <option value=".sky" @if(request('mode') == '.sky') selected @endif>.sky (Massive L7)</option>
+                                <option value=".CFSTRONG" @if(request('mode') == '.CFSTRONG') selected @endif>.CFSTRONG (Hardened Bypass)</option>
+                            </optgroup>
+                            <optgroup label="[ LAYER 4 - INFRASTRUCTURE ]">
+                                <option value=".udp" @if(request('mode') == '.udp') selected @endif>.udp (User Datagram Protocol)</option>
+                                <option value=".tcp" @if(request('mode') == '.tcp') selected @endif>.tcp (Transmission Control)</option>
+                                <option value=".nfo-killer" @if(request('mode') == '.nfo-killer') selected @endif>.nfo-killer (Server Reaper)</option>
+                                <option value=".udpbypass" @if(request('mode') == '.udpbypass') selected @endif>.udpbypass (L4 Bypass)</option>
+                                <option value=".Max" @if(request('mode') == '.Max') selected @endif>.Max (100Gbps Throughput)</option>
+                                <option value=".ovh-amp" @if(request('mode') == '.ovh-amp') selected @endif>.ovh-amp (Games Anti-DDoS)</option>
+                            </optgroup>
                         </select>
                     </div>
                     <div class="lg:col-span-4 flex items-end gap-3">
