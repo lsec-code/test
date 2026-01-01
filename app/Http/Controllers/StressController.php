@@ -247,24 +247,31 @@ class StressController extends Controller
                             }
                         }
 
-                        // TCP Fallback if ICMP fails (Target likely blocks PING but is ALIVE)
+                        // L7 HTTP Accuracy Fallback (The ultimate check for Cloudflare/WAF)
                         if (!$pingSuccess) {
-                            $ports = [443, 80];
-                            $tcpUp = false;
-                            foreach ($ports as $p) {
-                                $fp = @fsockopen($host, $p, $errno, $errstr, 1);
-                                if ($fp) {
-                                    $pmsg = "[$timestamp] [UP] Port $p is OPEN (ICMP Filtered)";
-                                    echo "<script>if(window.parent.appendPingLog) window.parent.appendPingLog(".json_encode($pmsg).", 'sky-400');</script>";
-                                    $tcpUp = true;
-                                    fclose($fp);
-                                    break;
-                                }
-                            }
+                            $checkUrl = (str_starts_with($url, 'http')) ? $url : "https://$host";
+                            $ch = curl_init($checkUrl);
+                            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+                            curl_setopt($ch, CURLOPT_TIMEOUT, 3);
+                            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+                            curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) LinuxSec/1.0');
                             
-                            if (!$tcpUp) {
-                                $errMsg = "[$timestamp] [DOWN] Target Unresponsive";
-                                echo "<script>if(window.parent.appendPingLog) window.parent.appendPingLog(".json_encode($errMsg).", 'red-500');</script>";
+                            $response = curl_exec($ch);
+                            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                            $error = curl_error($ch);
+                            curl_close($ch);
+
+                            if ($httpCode >= 200 && $httpCode < 500) {
+                                $pmsg = "[$timestamp] [UP] HTTP $httpCode Response (Active)";
+                                echo "<script>if(window.parent.appendPingLog) window.parent.appendPingLog(".json_encode($pmsg).", 'sky-400');</script>";
+                            } elseif ($httpCode >= 500) {
+                                $pmsg = "[$timestamp] [DOWN] HTTP $httpCode (Server Failure)";
+                                echo "<script>if(window.parent.appendPingLog) window.parent.appendPingLog(".json_encode($pmsg).", 'red-500');</script>";
+                            } else {
+                                $pmsg = "[$timestamp] [DOWN] Connection Timed Out / Refused";
+                                echo "<script>if(window.parent.appendPingLog) window.parent.appendPingLog(".json_encode($pmsg).", 'red-600');</script>";
                             }
                         }
                     }
