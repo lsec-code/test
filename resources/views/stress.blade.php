@@ -134,11 +134,12 @@
             <form action="{{ route('stress.start') }}" method="POST" target="terminal-frame" onsubmit="startAttack()">
                 @csrf
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-8 bg-slate-950/30 p-6 rounded-2xl border border-slate-800/50">
-                    <div class="lg:col-span-6">
+                    <!-- ROW 1 -->
+                    <div class="lg:col-span-5">
                         <label class="block text-[10px] font-bold uppercase text-slate-500 mb-2 tracking-widest">Target URL / EndPoint</label>
-                        <input type="text" name="url" required class="w-full bg-slate-900 border-slate-800 text-white rounded-xl p-3.5 text-sm focus:ring-2 focus:ring-sky-500 transition-all font-mono" placeholder="https://target.com" value="https://">
+                        <input type="text" name="url" required class="w-full bg-slate-900 border-slate-800 text-white rounded-xl p-3.5 text-sm font-mono" placeholder="https://target.com" value="https://">
                     </div>
-                    <div class="lg:col-span-2">
+                    <div class="lg:col-span-1">
                         <label class="block text-[10px] font-bold uppercase text-slate-500 mb-2 tracking-widest">Port</label>
                         <input type="number" name="port" required class="w-full bg-slate-900 border-slate-800 text-white rounded-xl p-3.5 text-sm font-mono" value="443">
                     </div>
@@ -148,7 +149,7 @@
                     </div>
                     <div class="lg:col-span-2">
                         <label class="block text-[10px] font-bold uppercase text-slate-500 mb-2 tracking-widest">Stop Condition</label>
-                        <select name="limit_type" id="limit_type" class="w-full bg-slate-900 border-slate-800 text-white rounded-xl p-3.5 text-xs font-mono focus:ring-2 focus:ring-sky-500" onchange="updateLimitLabel()">
+                        <select name="limit_type" id="limit_type" class="w-full bg-slate-900 border-slate-800 text-white rounded-xl p-3.5 text-xs font-mono" onchange="updateLimitLabel()">
                             <option value="time">Flood (Sec)</option>
                             <option value="req">Visitors (Req)</option>
                         </select>
@@ -158,25 +159,14 @@
                         <input type="number" name="duration" id="duration" required class="w-full bg-slate-900 border-slate-800 text-white rounded-xl p-3.5 text-sm font-mono" value="60">
                     </div>
 
-                    <script>
-                        function updateLimitLabel() {
-                            const type = document.getElementById('limit_type').value;
-                            const label = document.getElementById('limit-label');
-                            const input = document.getElementById('duration');
-                            if(type === 'time') {
-                                label.innerText = "Duration (Sec)";
-                                input.placeholder = "Example: 60";
-                                if(input.value > 3600) input.value = 60;
-                            } else {
-                                label.innerText = "Target (Req)";
-                                input.placeholder = "Example: 10000";
-                                if(input.value < 1000) input.value = 10000;
-                            }
-                        }
-                    </script>
-                    <div class="lg:col-span-8">
+                    <!-- ROW 2 -->
+                    <div class="lg:col-span-3">
+                        <label class="block text-[10px] font-bold uppercase text-slate-500 mb-2 tracking-widest">RPS Limit (0=Max)</label>
+                        <input type="number" name="rps" required class="w-full bg-slate-900 border-slate-800 text-white rounded-xl p-3.5 text-sm font-mono" value="0" placeholder="0 = Unlimited">
+                    </div>
+                    <div class="lg:col-span-5">
                         <label class="block text-[10px] font-bold uppercase text-slate-500 mb-2 tracking-widest">Attack Protocol Selection</label>
-                        <select name="mode" id="mode" class="w-full bg-slate-900 border-slate-800 text-white rounded-xl p-3.5 text-sm font-black tracking-tight focus:ring-2 focus:ring-sky-500 transition-all font-mono">
+                        <select name="mode" id="mode" class="w-full bg-slate-900 border-slate-800 text-white rounded-xl p-3.5 text-sm font-black tracking-tight font-mono">
                             <option value="1">L7-STD: Application Layer Flood (Standard)</option>
                             <option value="2">L7-ADV: Human Identity Emulation (Bypass)</option>
                             <option value="3">L7-DBX: Database & Search Exhaustion (Cache Bypass)</option>
@@ -192,6 +182,21 @@
                             <i class="fa-solid fa-power-off"></i>
                         </button>
                     </div>
+
+                    <script>
+                        function updateLimitLabel() {
+                            const type = document.getElementById('limit_type').value;
+                            const label = document.getElementById('limit-label');
+                            const input = document.getElementById('duration');
+                            if(type === 'time') {
+                                label.innerText = "Duration (Sec)";
+                                if(input.value > 3600) input.value = 60;
+                            } else {
+                                label.innerText = "Target (Req)";
+                                if(input.value < 1000) input.value = 10000;
+                            }
+                        }
+                    </script>
                 </div>
             </form>
 

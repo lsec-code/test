@@ -94,7 +94,8 @@ class StressController extends Controller
             'duration' => 'required|integer|min:1', 
             'port' => 'required|integer|min:1|max:65535',
             'mode' => 'required|integer',
-            'limit_type' => 'required|string|in:time,req'
+            'limit_type' => 'required|string|in:time,req',
+            'rps' => 'required|integer|min:0'
         ]);
 
         if ($validator->fails()) {
@@ -102,9 +103,7 @@ class StressController extends Controller
                 echo str_repeat(' ', 4096);
                 echo '<html><body style="background:#000; color:#ef4444; font-family:monospace; padding:20px;">';
                 echo "<h3>[VALIDATION ERROR]</h3>";
-                echo "<ul>";
-                echo "<li>Invalid Inputs. Check URL, Threads, and Limit values.</li>";
-                echo "</ul>";
+                echo "<ul><li>Invalid Inputs. Check URL, Threads, RPS and Limit values.</li></ul>";
                 echo "</body></html>";
             }, 200, ['Content-Type' => 'text/html']);
         }
@@ -120,10 +119,11 @@ class StressController extends Controller
         }
 
         $threads = (int)$request->input('threads');
-        $limit_val = (int)$request->input('duration'); // This is either Sec or Count
+        $limit_val = (int)$request->input('duration');
         $port = (int)$request->input('port');
         $mode = (int)$request->input('mode');
         $limit_type = $request->input('limit_type');
+        $rps = (int)$request->input('rps');
 
         $scriptPath = public_path('stress_engine.py');
         
@@ -133,20 +133,21 @@ class StressController extends Controller
             else $python = 'python3';
         }
 
-        return response()->stream(function() use ($python, $scriptPath, $url, $threads, $limit_val, $port, $mode, $limit_type) {
+        return response()->stream(function() use ($python, $scriptPath, $url, $threads, $limit_val, $port, $mode, $limit_type, $rps) {
             echo str_repeat(' ', 4096); 
             echo '<html><body style="background-color:#000; color:#4ade80; font-family:monospace; font-size:12px; margin:0; padding:15px; line-height:1.4;">';
             echo '<script>setInterval(() => { window.scrollTo(0, document.body.scrollHeight); }, 100);</script>';
             
-            echo "<span style='color:#38bdf8'>[SYSTEM] MONSTER V7 PLATINUM - " . strtoupper($limit_type) . " LIMIT MODE</span><br>";
+            $rpsText = $rps > 0 ? "PACED ($rps RPS)" : "MAX-EFFICIENCY";
+            echo "<span style='color:#38bdf8'>[SYSTEM] MONSTER V7 PLATINUM - " . strtoupper($limit_type) . " LIMIT MODE ($rpsText)</span><br>";
             
             if (!file_exists($scriptPath)) {
                 echo "<span style='color:#ef4444'>[FATAL] Stress engine script not found at $scriptPath</span><br>";
                 return;
             }
 
-            // New Command Format: url threads limit_val port mode limit_type
-            $cmd = "$python -u \"$scriptPath\" \"$url\" $threads $limit_val $port $mode $limit_type 2>&1";
+            // New Command Format: url threads limit_val port mode limit_type rps
+            $cmd = "$python -u \"$scriptPath\" \"$url\" $threads $limit_val $port $mode $limit_type $rps 2>&1";
             echo "<span style='color:#64748b'>[DEBUG] CMD: $cmd</span><br><br>";
             flush();
 
