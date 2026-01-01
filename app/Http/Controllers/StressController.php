@@ -218,36 +218,53 @@ class StressController extends Controller
                         echo '<script>window.scrollTo(0, document.body.scrollHeight);</script>';
                     }
 
-                    // Integrated Ping logic (runs every 3 seconds)
+                    // Integrated Hybrid Monitoring (runs every 3 seconds)
                     if (time() - $lastPingTime >= 3) {
                         $lastPingTime = time();
                         $timestamp = date('H:i:s');
+                        $pingSuccess = false;
                         
                         if (PHP_OS_FAMILY === 'Windows') {
                             exec("ping -n 1 -w 1000 $host", $out, $status);
                             if ($status === 0 && !empty($out)) {
                                 foreach ($out as $l) {
-                                    if (str_contains($l, 'Reply') || str_contains($l, 'from') || str_contains($l, 'ttl=')) {
+                                    if (str_contains($l, 'Reply') || str_contains($l, 'from')) {
                                         $pmsg = "[$timestamp] " . trim($l);
                                         echo "<script>if(window.parent.appendPingLog) window.parent.appendPingLog(".json_encode($pmsg).", 'emerald-400');</script>";
+                                        $pingSuccess = true;
                                         break;
                                     }
-                                }
-                            } else {
-                                $fp = @fsockopen($host, 80, $errno, $errstr, 1);
-                                if ($fp) {
-                                    echo "<script>if(window.parent.appendPingLog) window.parent.appendPingLog(".json_encode("[$timestamp] [TCP-OK] $host is UP").", 'sky-400');</script>";
-                                    fclose($fp);
-                                } else {
-                                    echo "<script>if(window.parent.appendPingLog) window.parent.appendPingLog(".json_encode("[$timestamp] [RTO] Target Unresponsive").", 'red-500');</script>";
                                 }
                             }
                             unset($out);
                         } else { // Linux
                             $res = shell_exec("ping -c 1 -W 1 $host 2>&1");
-                            $pmsg = $res ? "[$timestamp] " . trim($res) : "[$timestamp] [DOWN] ICMP Blocked or Host Unreachable";
-                            $color = str_contains($pmsg, 'time=') ? 'emerald-400' : (str_contains($pmsg, 'unreachable') || str_contains($pmsg, 'DOWN') ? 'red-500' : 'yellow-400');
-                            echo "<script>if(window.parent.appendPingLog) window.parent.appendPingLog(".json_encode($pmsg).", '$color');</script>";
+                            if ($res && str_contains($res, 'time=')) {
+                                $lines = explode("\n", $res);
+                                $pmsg = "[$timestamp] " . trim($lines[1] ?? $lines[0]);
+                                echo "<script>if(window.parent.appendPingLog) window.parent.appendPingLog(".json_encode($pmsg).", 'emerald-400');</script>";
+                                $pingSuccess = true;
+                            }
+                        }
+
+                        // TCP Fallback if ICMP fails (Target likely blocks PING but is ALIVE)
+                        if (!$pingSuccess) {
+                            $ports = [443, 80];
+                            $tcpUp = false;
+                            foreach ($ports as $p) {
+                                $fp = @fsockopen($host, $p, $errno, $errstr, 1);
+                                if ($fp) {
+                                    $pmsg = "[$timestamp] [UP] Port $p is OPEN (ICMP Filtered)";
+                                    echo "<script>if(window.parent.appendPingLog) window.parent.appendPingLog(".json_encode($pmsg).", 'sky-400');</script>";
+                                    $tcpUp = true;
+                                    fclose($fp);
+                                    break;
+                                }
+                            }
+                            
+                            if (!$tcpUp) {
+                                echo "<script>if(window.parent.appendPingLog) window.parent.appendPingLog(".json_encode("[$timestamp] [DOWN] Target Unresponsive"), 'red-500');</script>";
+                            }
                         }
                     }
 
