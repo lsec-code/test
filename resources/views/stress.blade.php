@@ -61,6 +61,8 @@
         }
     </style>
 </head>
+<body class="min-h-screen bg-[#0f172a] p-4 flex items-center justify-center">
+
     <div class="w-full max-w-[1400px] mx-auto">
         <div class="card bg-slate-900 border border-slate-700/50 p-6 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)]">
             <!-- HEADER SECTION -->
@@ -169,92 +171,92 @@
                 </div>
             </form>
 
+            </div>
+            
             <!-- TERMINAL SECTION -->
-            <div>
+            <div class="mt-8">
                 <div class="flex justify-between items-center mb-2 px-1">
                     <label class="text-[10px] font-bold uppercase text-slate-500 tracking-widest flex items-center gap-2">
                         <i class="fa-solid fa-terminal text-sky-500"></i> Realtime Strike Logs
                     </label>
-                    <span class="text-[10px] text-slate-600 font-mono">Stream: Unbuffered HTTP 1.1</span>
+                    <span class="text-[10px] text-slate-600 font-mono">Stream: V7 Platinum Core</span>
                 </div>
-                <iframe name="terminal-frame" id="terminal-frame" class="w-full h-[400px] border border-slate-800 rounded-2xl shadow-2xl bg-black"></iframe>
+                <iframe name="terminal-frame" id="terminal-frame" class="w-full h-[450px] border border-slate-800 rounded-2xl shadow-2xl bg-black"></iframe>
             </div>
-        </div>
 
-        <div class="mb-2 flex justify-between items-end">
-            <label class="text-xs font-semibold uppercase text-slate-400">Terminal Output</label>
-        </div>
-        
-        <iframe name="terminal-frame" id="terminal-frame" class="w-full h-80 p-4 shadow-inner"></iframe>
-        
-        <script>
-            function startAttack() {
-                const btn = document.getElementById('btn-launch');
-                const btnText = document.getElementById('btn-text');
-                const indicator = document.getElementById('strike-indicator');
-                
-                indicator.classList.remove('hidden');
-                btnText.innerText = "STRIKE ACTIVE...";
-                btn.style.opacity = "0.7";
-                btn.style.cursor = "wait";
-                btn.disabled = true;
-                
-                Swal.fire({
-                    title: 'V6 Engine Engaged',
-                    text: 'L7 Attack Protocol initiated. Target saturation in progress.',
-                    icon: 'success',
-                    timer: 2000,
-                    showConfirmButton: false,
-                    background: '#1e293b',
-                    color: '#fff'
-                });
-            }
-
-            function confirmStop() {
-                Swal.fire({
-                    title: 'Abort Operation?',
-                    text: "This will terminate all V6 processes immediately!",
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#ef4444',
-                    cancelButtonColor: '#334155',
-                    confirmButtonText: 'Yes, Abort NOW',
-                    background: '#1e293b',
-                    color: '#fff'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        stopAttack();
+            <script>
+                function startAttack() {
+                    const btn = document.getElementById('btn-launch');
+                    const btnText = document.getElementById('btn-text');
+                    const indicator = document.getElementById('strike-indicator');
+                    
+                    if (indicator) indicator.classList.remove('hidden');
+                    if (btnText) btnText.innerText = "STRIKE ACTIVE...";
+                    if (btn) {
+                        btn.style.opacity = "0.7";
+                        btn.style.cursor = "wait";
+                        btn.disabled = true;
                     }
-                })
-            }
+                    
+                    Swal.fire({
+                        title: 'V7 Platinum Engaged',
+                        text: 'WRK-Performance Engine initiated. Target saturation in progress.',
+                        icon: 'success',
+                        timer: 2000,
+                        showConfirmButton: false,
+                        background: '#0f172a',
+                        color: '#fff'
+                    });
+                }
 
-            function stopAttack() {
-                // Navigate iframe to blank to trigger backend abort
-                document.getElementById('terminal-frame').src = 'about:blank';
-                document.getElementById('strike-indicator').classList.add('hidden');
-                
-                const btn = document.getElementById('btn-launch');
-                const btnText = document.getElementById('btn-text');
-                
-                btnText.innerText = "LAUNCH TEST";
-                btn.style.opacity = "1";
-                btn.style.cursor = "pointer";
-                btn.disabled = false;
-                
-                Swal.fire({
-                    title: 'Mission Aborted',
-                    text: 'Strike protocols terminated.',
-                    icon: 'info',
-                    timer: 1500,
-                    showConfirmButton: false,
-                    background: '#1e293b',
-                    color: '#fff'
-                });
-            }
-        </script>
+                function confirmStop() {
+                    Swal.fire({
+                        title: 'Abort Strike?',
+                        text: "This will terminate all V7 processes immediately!",
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#ef4444',
+                        cancelButtonColor: '#334155',
+                        confirmButtonText: 'Yes, Abort NOW',
+                        background: '#0f172a',
+                        color: '#fff'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            stopAttack();
+                        }
+                    })
+                }
 
-        <div class="mt-6 text-center text-xs text-slate-500">
-            For internal stress testing and server validation only. Use responsibly.
+                function stopAttack() {
+                    document.getElementById('terminal-frame').src = 'about:blank';
+                    const indicator = document.getElementById('strike-indicator');
+                    if (indicator) indicator.classList.add('hidden');
+                    
+                    const btn = document.getElementById('btn-launch');
+                    const btnText = document.getElementById('btn-text');
+                    
+                    if (btnText) btnText.innerText = "Execute Strike";
+                    if (btn) {
+                        btn.style.opacity = "1";
+                        btn.style.cursor = "pointer";
+                        btn.disabled = false;
+                    }
+                    
+                    Swal.fire({
+                        title: 'Strike Aborted',
+                        text: 'V7 protocols terminated.',
+                        icon: 'info',
+                        timer: 1500,
+                        showConfirmButton: false,
+                        background: '#0f172a',
+                        color: '#fff'
+                    });
+                }
+            </script>
+
+            <div class="mt-6 text-center text-xs text-slate-500">
+                For internal stress testing and server validation only. Use responsibly.
+            </div>
         </div>
     </div>
 
