@@ -109,15 +109,17 @@ class StressController extends Controller
             }
 
             // Force Unbuffered Output (-u)
-            $cmd = "$python -u \"$scriptPath\" \"$url\" $threads $duration $port $mode 2>&1"; // Capture Error
+            // INJECT SHELL TEST
+            $cmd = "echo \"[SHELL] SYSTEM ALIVE\" && $python -u \"$scriptPath\" \"$url\" $threads $duration $port $mode 2>&1"; 
+            
             echo "<span style='color:yellow'>[SYSTEM] CMD: $cmd</span><br>";
             echo str_repeat(' ', 1024);
             flush();
 
+            // REMOVE PIPE 2 (We use 2>&1)
             $descriptorSpec = [
                 0 => ["pipe", "r"],
-                1 => ["pipe", "w"],
-                2 => ["pipe", "w"]
+                1 => ["pipe", "w"]
             ];
 
             $process = proc_open($cmd, $descriptorSpec, $pipes);
