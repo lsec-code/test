@@ -6,72 +6,10 @@ use Illuminate\Http\Request;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 
-use Illuminate\Support\Facades\RateLimiter;
-use Exception;
-
 class StressController extends Controller
 {
-    public function login(Request $request)
-    {
-        try {
-            $ip = $request->ip();
-            $key = 'login-attempts:' . $ip;
-
-            if (RateLimiter::tooManyAttempts($key, 5)) {
-                $seconds = RateLimiter::availableIn($key);
-                return response()->json([
-                    'success' => false, 
-                    'message' => "SECURITY LOCKOUT: Wait $seconds seconds."
-                ], 429);
-            }
-
-            $password = $request->input('password');
-            $master_password = 'Alyfa021199'; 
-
-            if ($password === $master_password) {
-                RateLimiter::clear($key);
-                session()->put('authenticated', true);
-                session()->save(); 
-                return response()->json([
-                    'success' => true,
-                    'message' => 'ACCESS GRANTED: Synchronizing session...'
-                ]);
-            }
-
-            RateLimiter::hit($key, 60);
-            $attempts = RateLimiter::attempts($key);
-            
-            return response()->json([
-                'success' => false, 
-                'message' => "INVALID KEY: Access denied ($attempts/5 attempts)."
-            ], 401);
-
-        } catch (Exception $e) {
-            return response()->json([
-                'success' => false, 
-                'message' => 'Auth Node Error: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    public function logout(Request $request)
-    {
-        session()->forget('authenticated');
-        return redirect()->to('/');
-    }
-
     public function index()
     {
-        if (request()->secure() || env('FORCE_HTTPS', false)) {
-            \URL::forceScheme('https');
-        }
-        
-        $authenticated = session('authenticated', false);
-        
-        if (!$authenticated) {
-            return view('stress', ['authenticated' => false, 'specs' => []]);
-        }
-
         // Default values
         $cpu = "Unknown Processor";
         $cores = "1";
@@ -102,13 +40,11 @@ class StressController extends Controller
             'disk_free' => $this->formatBytes($diskFree),
         ];
 
-        return view('stress', compact('specs', 'authenticated'));
+        return view('stress', compact('specs'));
     }
 
     public function stats()
     {
-        if (!session('authenticated')) return response()->json(['error' => 'Unauthorized'], 403);
-
         $cpuLoad = rand(5, 10);
         $ramUsage = rand(10, 20);
 
@@ -147,12 +83,6 @@ class StressController extends Controller
 
     public function start(Request $request)
     {
-        if (!session('authenticated')) {
-            return response()->stream(function() {
-                echo "<h3>[403] ACCESS DENIED: Invalid Security Token.</h3>";
-            }, 403, ['Content-Type' => 'text/html']);
-        }
-
         @session_write_close(); 
         set_time_limit(0);
 

