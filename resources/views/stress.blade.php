@@ -253,8 +253,10 @@
                         btn.disabled = true;
                     }
 
-                    // Start Ping Tool
-                    document.getElementById('ping-frame').src = '{{ route("stress.ping") }}?url=' + encodeURIComponent(urlInput);
+                    // Start Ping Tool (with Cache Buster and slight delay)
+                    setTimeout(() => {
+                        document.getElementById('ping-frame').src = '{{ route("stress.ping") }}?url=' + encodeURIComponent(urlInput) + '&t=' + Date.now();
+                    }, 500);
                     
                     Swal.fire({
                         title: 'V7 Platinum Engaged',

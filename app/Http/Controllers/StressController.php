@@ -83,15 +83,16 @@ class StressController extends Controller
 
     public function ping(Request $request)
     {
+        // 0. Release session lock immediately to allow parallel execution
+        if (session_id()) session_write_close();
+
         // 1. Force absolute zero buffering
         if (function_exists('apache_setenv')) {
             @apache_setenv('no-gzip', 1);
         }
         @ini_set('zlib.output_compression', 0);
         @ini_set('implicit_flush', 1);
-        ob_implicit_flush(true);
-        while (ob_get_level() > 0) ob_end_clean();
-
+        
         $url = $request->input('url');
         
         // Robust host extraction
@@ -103,7 +104,12 @@ class StressController extends Controller
         $host = trim($host, " /:?#");
 
         return response()->stream(function() use ($host) {
-            echo str_repeat(' ', 1024); // Small buffer break
+            // Disable all output buffering
+            while (ob_get_level() > 0) ob_end_clean();
+            ob_implicit_flush(true);
+
+            // 4KB padding to bypass proxy buffers (Nginx/Apache)
+            echo str_repeat(' ', 4096); 
             echo '<html><body style="background:#000; color:#10b981; font-family:monospace; font-size:12px; margin:0; padding:10px; border:0;">';
             echo "<div style='color:#38bdf8'>[SESSION] LIVE CONTEXT ESTABLISHED FOR: ".htmlspecialchars($host)."</div>";
             echo "<div style='color:#64748b'>[*] Initializing ICMP/TCP Diagnostic Probe...</div><br>";
@@ -115,40 +121,36 @@ class StressController extends Controller
             }
 
             if (PHP_OS_FAMILY === 'Windows') {
-                for ($i = 0; $i < 300; $i++) {
-                    // Try ICMP Ping with timeout
-                    exec("ping -n 1 -w 1000 $host 2>&1", $output, $status);
+                for ($i = 0; $i < 600; $i++) {
+                    $pingSpec = [1 => ["pipe", "w"], 2 => ["pipe", "w"]];
+                    $hPing = proc_open("ping -n 1 -w 1000 $host", $pingSpec, $ppipes);
                     
-                    if ($status === 0 && !empty($output)) {
-                        foreach ($output as $line) {
-                            $line = trim($line);
-                            if (empty($line) || str_contains($line, 'Pinging')) continue;
-                            echo "<span>" . htmlspecialchars($line) . "</span><br>";
+                    if (is_resource($hPing)) {
+                        while ($pLine = fgets($ppipes[1])) {
+                            if (str_contains($pLine, 'Reply') || str_contains($pLine, 'Request') || str_contains($pLine, 'unreachable')) {
+                                echo "<span>" . htmlspecialchars(trim($pLine)) . "</span><br>";
+                            }
                         }
+                        proc_close($hPing);
                     } else {
-                        // TCP FALLBACK (Fast probe)
+                        // TCP FALLBACK
                         $start = microtime(true);
                         $fp = @fsockopen($host, 80, $errno, $errstr, 1);
-                        if (!$fp) $fp = @fsockopen($host, 443, $errno, $errstr, 1);
-                        
                         if ($fp) {
                             $lat = round((microtime(true) - $start) * 1000, 2);
-                            echo "<span style='color:#2dd4bf'>[TCP-PROBE] Reply from $host: OPEN (Lat: {$lat}ms)</span><br>";
+                            echo "<span style='color:#2dd4bf'>[TCP-PROBE] $host: RESPONSE OK (Lat: {$lat}ms)</span><br>";
                             fclose($fp);
                         } else {
-                            echo "<span style='color:#f87171'>[DOWN] $host: No response (Timeout/Blocked)</span><br>";
+                            echo "<span style='color:#f87171'>[DOWN] $host: No response</span><br>";
                         }
                     }
-                    
                     echo '<script>window.scrollTo(0, document.body.scrollHeight);</script>';
                     flush();
                     if (connection_aborted()) break;
-                    sleep(1);
-                    unset($output); // Clear for next loop
+                    usleep(500000); 
                 }
             } else {
-                // Linux logic
-                $cmd = "ping -c 300 -i 1 $host 2>&1";
+                $cmd = "ping -c 600 -i 1 $host 2>&1";
                 $ptr = popen($cmd, 'r');
                 while (!feof($ptr)) {
                     $line = fgets($ptr);
@@ -172,6 +174,8 @@ class StressController extends Controller
 
     public function start(Request $request)
     {
+        // Release session lock to allow parallel requests (like ping monitor)
+        if (session_id()) session_write_close();
         $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'url' => 'required|string|min:10',
             'threads' => 'required|integer|min:1|max:1000',
