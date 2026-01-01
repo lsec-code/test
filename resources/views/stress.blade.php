@@ -97,7 +97,7 @@
             btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin mr-2"></i> VERIFYING...';
             btn.disabled = true;
 
-            fetch('{{ route("stress.login") }}', {
+            fetch('/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
                 body: JSON.stringify({ password: pass })
@@ -158,7 +158,7 @@
                         <span class="text-[10px] text-red-500 font-bold uppercase tracking-widest">Strike Active</span>
                     </div>
                     @if($authenticated)
-                    <form action="{{ route('stress.logout') }}" method="POST">
+                    <form action="/logout" method="POST">
                         @csrf
                         <button type="submit" class="w-10 h-10 bg-slate-800 hover:bg-red-500/20 hover:text-red-500 text-slate-400 rounded-xl border border-slate-700 transition-all flex items-center justify-center shadow-xl" title="Lock Dashboard">
                             <i class="fa-solid fa-lock"></i>
@@ -217,7 +217,7 @@
             </div>
 
             <!-- ATTACK CONFIGURATION -->
-            <form action="{{ route('stress.start') }}" method="POST" target="terminal-frame" onsubmit="startAttack()">
+            <form action="/start" method="POST" target="terminal-frame" onsubmit="startAttack()">
                 @csrf
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-8 bg-slate-950/30 p-6 rounded-2xl border border-slate-800/50">
                     <!-- ROW 1 -->
@@ -459,7 +459,7 @@
 
         // POLLING STATS
         setInterval(() => {
-            fetch('{{ route("stress.stats") }}')
+            fetch('/stats')
                 .then(res => res.json())
                 .then(data => {
                     // Normalize values
