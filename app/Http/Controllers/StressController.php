@@ -8,6 +8,11 @@ use Symfony\Component\Process\Exception\ProcessFailedException;
 
 class StressController extends Controller
 {
+    public function landing()
+    {
+        return view('landing');
+    }
+
     public function index()
     {
         // Default values
