@@ -63,7 +63,7 @@
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
 
-    <div class="w-full max-w-5xl card relative">
+    <div class="w-full max-w-7xl card relative">
         <div class="flex items-center justify-between mb-8 border-b border-slate-700 pb-4">
             <div>
                 <h1 class="text-3xl font-bold text-white tracking-tight">MONSTER STRES</h1>
