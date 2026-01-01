@@ -83,78 +83,91 @@ class StressController extends Controller
 
     public function ping(Request $request)
     {
+        // 1. Force absolute zero buffering
+        if (function_exists('apache_setenv')) {
+            @apache_setenv('no-gzip', 1);
+        }
+        @ini_set('zlib.output_compression', 0);
+        @ini_set('implicit_flush', 1);
+        ob_implicit_flush(true);
+        while (ob_get_level() > 0) ob_end_clean();
+
         $url = $request->input('url');
         
         // Robust host extraction
         $host = parse_url($url, PHP_URL_HOST);
         if (!$host) {
-            // Regex fallback for non-schema URLs like "domain.com/path"
             preg_match('/^([^\/]+)/', str_replace(['http://', 'https://'], '', $url), $matches);
             $host = $matches[1] ?? $url;
         }
-        $host = trim($host, " /");
+        $host = trim($host, " /:?#");
 
         return response()->stream(function() use ($host) {
-            // Force disable buffering
-            while (ob_get_level() > 0) ob_end_clean();
-            
-            echo str_repeat(' ', 4096); 
-            echo '<html><body style="background:#000; color:#4ade80; font-family:monospace; font-size:12px; margin:0; padding:10px; line-height:1.2;">';
-            echo "<span style='color:#38bdf8'>[NETWORK] STARTING LIVE MONITOR FOR: $host</span><br><br>";
+            echo str_repeat(' ', 1024); // Small buffer break
+            echo '<html><body style="background:#000; color:#10b981; font-family:monospace; font-size:12px; margin:0; padding:10px; border:0;">';
+            echo "<div style='color:#38bdf8'>[SESSION] LIVE CONTEXT ESTABLISHED FOR: ".htmlspecialchars($host)."</div>";
+            echo "<div style='color:#64748b'>[*] Initializing ICMP/TCP Diagnostic Probe...</div><br>";
             flush();
 
-            if (empty($host)) {
-                echo "<span style='color:#ef4444'>[ERROR] Invalid Host. Check Target URL.</span>";
+            if (empty($host) || strlen($host) < 3) {
+                echo "<span style='color:#ef4444'>[!] ERROR: Host identification failed.</span>";
                 return;
             }
 
             if (PHP_OS_FAMILY === 'Windows') {
-                for ($i = 0; $i < 600; $i++) {
-                    $pingOut = "";
-                    $res = shell_exec("ping -n 1 $host");
+                for ($i = 0; $i < 300; $i++) {
+                    // Try ICMP Ping with timeout
+                    exec("ping -n 1 -w 1000 $host 2>&1", $output, $status);
                     
-                    if ($res) {
-                        $lines = explode("\n", $res);
-                        foreach ($lines as $line) {
+                    if ($status === 0 && !empty($output)) {
+                        foreach ($output as $line) {
                             $line = trim($line);
                             if (empty($line) || str_contains($line, 'Pinging')) continue;
-                            echo htmlspecialchars($line) . "<br>";
+                            echo "<span>" . htmlspecialchars($line) . "</span><br>";
                         }
                     } else {
-                        // TCP FALLBACK (If ICMP is blocked)
+                        // TCP FALLBACK (Fast probe)
                         $start = microtime(true);
-                        $fp = @fsockopen($host, 443, $errno, $errstr, 1);
-                        if (!$fp) $fp = @fsockopen($host, 80, $errno, $errstr, 1);
+                        $fp = @fsockopen($host, 80, $errno, $errstr, 1);
+                        if (!$fp) $fp = @fsockopen($host, 443, $errno, $errstr, 1);
                         
-                        $lat = round((microtime(true) - $start) * 1000, 2);
                         if ($fp) {
-                            echo "<span style='color:#10b981'>[TCP-OK] Connection to $host:443 established | Latency: {$lat}ms</span><br>";
+                            $lat = round((microtime(true) - $start) * 1000, 2);
+                            echo "<span style='color:#2dd4bf'>[TCP-PROBE] Reply from $host: OPEN (Lat: {$lat}ms)</span><br>";
                             fclose($fp);
                         } else {
-                            echo "<span style='color:#ef4444'>[TIMEOUT] $host is unresponsive (ICMP/TCP Blocked)</span><br>";
+                            echo "<span style='color:#f87171'>[DOWN] $host: No response (Timeout/Blocked)</span><br>";
                         }
                     }
+                    
                     echo '<script>window.scrollTo(0, document.body.scrollHeight);</script>';
-                    if (ob_get_level() > 0) ob_flush();
                     flush();
                     if (connection_aborted()) break;
-                    usleep(1000000); 
+                    sleep(1);
+                    unset($output); // Clear for next loop
                 }
             } else {
-                $cmd = "ping -i 1 $host";
-                $descriptorspec = [1 => ["pipe", "w"], 2 => ["pipe", "w"]];
-                $process = proc_open($cmd, $descriptorspec, $pipes);
-
-                if (is_resource($process)) {
-                    while ($line = fgets($pipes[1])) {
+                // Linux logic
+                $cmd = "ping -c 300 -i 1 $host 2>&1";
+                $ptr = popen($cmd, 'r');
+                while (!feof($ptr)) {
+                    $line = fgets($ptr);
+                    if ($line) {
                         echo htmlspecialchars($line) . "<br>";
                         echo '<script>window.scrollTo(0, document.body.scrollHeight);</script>';
                         flush();
                     }
-                    proc_close($process);
+                    if (connection_aborted()) break;
                 }
+                pclose($ptr);
             }
-        }, 200, ['Content-Type' => 'text/html', 'X-Accel-Buffering' => 'no']);
+            echo "</body></html>";
+        }, 200, [
+            'Content-Type' => 'text/html',
+            'X-Accel-Buffering' => 'no',
+            'Cache-Control' => 'no-cache',
+            'Connection' => 'keep-alive'
+        ]);
     }
 
     public function start(Request $request)
