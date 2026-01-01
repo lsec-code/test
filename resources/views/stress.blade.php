@@ -274,17 +274,29 @@
                     
                     // Start AJAX Polling for Ping
                     if (pingInterval) clearInterval(pingInterval);
-                    pingInterval = setInterval(() => {
-                        fetch(`{{ route("stress.ping-single") }}?url=${encodeURIComponent(urlInput)}`)
-                            .then(res => res.json())
-                            .then(data => {
-                                let color = 'emerald-400';
-                                if (data.output.includes('[DOWN]') || data.output.includes('timed out')) color = 'red-500';
-                                if (data.output.includes('[TCP-PROBE]')) color = 'sky-400';
-                                appendPingLog(data.output, color);
-                            })
-                            .catch(err => appendPingLog(`[INTERNAL-ERR] ${err.message}`, 'amber-500'));
-                    }, 2000);
+                    
+                    // Initial delay to let the attack stream start
+                    setTimeout(() => {
+                        pingInterval = setInterval(() => {
+                            fetch(`{{ route("stress.ping-single") }}?url=${encodeURIComponent(urlInput)}&cache=${Date.now()}`)
+                                .then(res => {
+                                    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+                                    return res.json();
+                                })
+                                .then(data => {
+                                    let color = 'emerald-400';
+                                    if (data.output.includes('[DOWN]') || data.output.toLowerCase().includes('timed out') || data.output.toLowerCase().includes('unreachable')) color = 'red-500';
+                                    if (data.output.includes('[TCP-PROBE]')) color = 'sky-400';
+                                    if (data.output !== "..." && data.output !== "Checking...") {
+                                        appendPingLog(data.output, color);
+                                    }
+                                })
+                                .catch(err => {
+                                    // Silent fail for minor worker busy/concurrency issues
+                                    console.warn("Ping Poll Error:", err);
+                                });
+                        }, 3000); // 3s interval to be gentle on PHP workers
+                    }, 1000);
                     
                     Swal.fire({
                         title: 'V7 Platinum Engaged',

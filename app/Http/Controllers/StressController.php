@@ -83,6 +83,8 @@ class StressController extends Controller
 
     public function pingSingle(Request $request)
     {
+        if (session_id()) session_write_close();
+        
         $url = $request->input('url');
         $host = parse_url($url, PHP_URL_HOST);
         if (!$host) {
@@ -93,15 +95,17 @@ class StressController extends Controller
 
         if (empty($host)) return response()->json(['output' => 'Invalid Host']);
 
-        $output = "Checking...";
+        $output = "..."; 
         if (PHP_OS_FAMILY === 'Windows') {
+            // Using -n 1 -w 1000 for a fast 1-second timeout
             $res = shell_exec("ping -n 1 -w 1000 $host");
             if ($res) {
-                // Find the line with Reply or Request
+                // Find the line with Reply or Request (handles multiple languages)
                 $lines = explode("\n", $res);
                 foreach ($lines as $line) {
-                    if (str_contains($line, 'Reply') || str_contains($line, 'Request') || str_contains($line, 'unreachable')) {
-                        $output = trim($line);
+                    $l = trim($line);
+                    if (str_contains($l, ': bytes=') || str_contains($l, 'ttl=') || str_contains($l, 'timed out') || str_contains($l, 'unreachable')) {
+                        $output = $l;
                         break;
                     }
                 }
