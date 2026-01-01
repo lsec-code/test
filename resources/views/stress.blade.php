@@ -97,35 +97,40 @@
             btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin mr-2"></i> VERIFYING...';
             btn.disabled = true;
 
-            fetch('/login', {
+            fetch(window.location.origin + '/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
                 body: JSON.stringify({ password: pass })
             })
-            .then(res => {
-                if (!res.ok) throw new Error('Server Error (Status: ' + res.status + ')');
-                return res.json();
+            .then(async res => {
+                const isJson = res.headers.get('content-type')?.includes('application/json');
+                const data = isJson ? await res.json() : null;
+
+                if (!res.ok) {
+                    throw new Error(data?.message || 'Server Error ' + res.status);
+                }
+                return data;
             })
             .then(data => {
-                if (data.success) {
+                if (data && data.success) {
                     location.reload();
                 } else {
                     Swal.fire({ 
                         title: 'Access Denied', 
-                        text: data.message || 'Invalid Access Key', 
+                        text: data?.message || 'Invalid Access Key', 
                         icon: 'error', 
                         background: '#0f172a', 
-                        color: '#fff',
-                        confirmButtonColor: '#f59e0b'
+                        color: '#fff'
                     });
                     btn.innerHTML = 'Unlock Dashboard';
                     btn.disabled = false;
                 }
             })
             .catch(err => {
+                console.error("Login Failure:", err);
                 Swal.fire({ 
-                    title: 'Connection Error', 
-                    text: 'Failed to connect to security node: ' + err.message, 
+                    title: 'System Fault', 
+                    text: err.message, 
                     icon: 'warning', 
                     background: '#0f172a', 
                     color: '#fff' 
@@ -459,7 +464,7 @@
 
         // POLLING STATS
         setInterval(() => {
-            fetch('/stats')
+            fetch(window.location.origin + '/stats')
                 .then(res => res.json())
                 .then(data => {
                     // Normalize values
