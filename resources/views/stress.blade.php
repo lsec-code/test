@@ -229,6 +229,20 @@
 
                 function stopAttack() {
                     document.getElementById('terminal-frame').src = 'about:blank';
+                    resetStrikeUI();
+                    
+                    Swal.fire({
+                        title: 'Strike Aborted',
+                        text: 'V7 protocols terminated.',
+                        icon: 'info',
+                        timer: 1500,
+                        showConfirmButton: false,
+                        background: '#0f172a',
+                        color: '#fff'
+                    });
+                }
+
+                function resetStrikeUI() {
                     const indicator = document.getElementById('strike-indicator');
                     if (indicator) indicator.classList.add('hidden');
                     
@@ -241,16 +255,6 @@
                         btn.style.cursor = "pointer";
                         btn.disabled = false;
                     }
-                    
-                    Swal.fire({
-                        title: 'Strike Aborted',
-                        text: 'V7 protocols terminated.',
-                        icon: 'info',
-                        timer: 1500,
-                        showConfirmButton: false,
-                        background: '#0f172a',
-                        color: '#fff'
-                    });
                 }
             </script>
 

@@ -161,6 +161,21 @@ class StressController extends Controller
                 fclose($pipes[1]);
                 $exitCode = proc_close($process);
                 echo "<br><span style='color:#fbbf24'>[*] OPERATION TERMINATED. EXIT CODE: $exitCode</span>";
+                
+                // AUTO RESET UI SCRIPT
+                echo '<script>
+                    if(window.parent && window.parent.resetStrikeUI) {
+                        window.parent.resetStrikeUI();
+                        window.parent.Swal.fire({
+                            title: "Attack Finished",
+                            text: "Operational objectives met. Systems idle.",
+                            icon: "success",
+                            timer: 3000,
+                            background: "#0f172a",
+                            color: "#fff"
+                        });
+                    }
+                </script>';
             } else {
                  echo "<span style='color:#ef4444'>[FATAL] Failed to start process! Check if Python is installed and in PATH.</span><br>";
             }
