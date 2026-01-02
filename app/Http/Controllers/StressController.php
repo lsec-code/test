@@ -217,14 +217,19 @@ class StressController extends Controller
         $host = parse_url($url, PHP_URL_HOST) ?? trim(str_replace(['http://', 'https://'], '', $url), '/');
 
         $scriptPath = public_path('stress_engine.py');
-        $python = 'python3';
+        $python = 'python'; // Default Windows/Generic
         if (PHP_OS_FAMILY === 'Windows') {
-            $python = 'python';
             exec("where python", $out, $ret);
             if ($ret !== 0) {
                 exec("where py", $out2, $ret2);
-                if ($ret2 === 0) $python = 'py';
+                if ($ret2 === 0) {
+                    $python = 'py';
+                } else {
+                    $python = 'python3'; // Fallback for Windows Store version or specific aliases
+                }
             }
+        } else {
+            $python = 'python3'; // Default Linux
         }
 
         return response()->stream(function() use ($python, $scriptPath, $url, $threads, $limit_val, $port, $mode, $limit_type, $rps, $host, $proxyFile, $proxy_type) {

